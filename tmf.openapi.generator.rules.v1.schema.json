@@ -1,0 +1,540 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tmf.openapi.generator.rules.schema",
+  "$version": "1.0.0",
+  "title": "TMF OpenAPI Generator Rules Schema",
+  "type": "object",
+  "description": "This schema defines rules for generating TMF OpenAPIs from JSON Schema resources.",
+  "properties": {
+    "rulesVersion": {
+      "type": "string",
+      "pattern": "^1\\.(\\d+)\\.(\\d+)",
+      "description": "Version of rules file used for API definition."
+    },
+    "api": {
+      "type": "object",
+      "description": "Base API Parameter which contains rules to create an API",
+      "properties": {
+        "shortName": {
+          "type": "string",
+          "description": "API Name used for constructing API Names",
+          "pattern": "^[a-zA-Z0-9]{3,}",
+          "examples": [ "CustomerBill" ]
+        },
+        "name": {
+          "type": "string",
+          "description": "API Name used for constructing API Names",
+          "examples": [ "Customer Bill" ]
+        },
+        "tmfId": {
+          "type": "string",
+          "description": "The TMF ID this API maps to",
+          "pattern": "TMF[0-9]{3,}",
+          "examples": [ "TMF678" ]
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the API",
+          "examples": [ "## TMF API Reference:\\ TMF 678 -\\ Customer bill Management\\n\\n### Release:\\ 19.5 -\\ December 2019\\n\\nThe Customer Bill Management API allows..." ]
+        },
+        "hostUrl": {
+          "type": "string",
+          "description": "The base Host URL. This identifies the host this API will be presented.",
+          "default": "https://serverRoot",
+          "examples": [ "https://serverRoot" ]
+        },
+        "basePath": {
+          "type": "string",
+          "description": "Base path of the API. This value gets appended to the parameter 'hostUrl'.",
+          "examples": [ "/tmf-api/customerBillManagement/" ]
+        },
+        "version": {
+          "type": "string",
+          "description": "The API version.",
+          "examples": [ "4.0" ]
+        },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/Resource"
+          }
+        },
+        "securitySchemes": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z0-9\\.\\-_]+$": {
+              "oneOf": [
+                {
+                  "$ref": "oas3.0.X.schema.json#/definitions/Reference"
+                },
+                {
+                  "$ref": "oas3.0.X.schema.json#/definitions/SecurityScheme"
+                }
+              ]
+            }
+          }
+        },
+        "security": {
+          "type": "array",
+          "items": {
+            "$ref": "oas3.0.X.schema.json#/definitions/SecurityRequirement"
+          }
+        }
+      },
+      "required": [
+        "resources",
+        "shortName",
+        "name"
+      ]
+    }
+  },
+  "required": [ "rulesVersion", "api"],
+  "definitions": {
+    "Resource": {
+      "type": "object",
+      "description": "A resource definition.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the resource.",
+          "pattern": "[A-Z][A-Za-z]+",
+          "examples": [ "AppliedCustomerBillingRate" ]
+        },
+        "examples": {
+          "type": "array",
+          "description": "Use-case specific example payloads for the resource.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/ResourceExample"
+          }
+        },
+        "schema": {
+          "type": "string",
+          "description": "file path or URL of the resource JSON Schema object.",
+          "examples": [ "Customer/AppliedCustomerBillingRate.schema.json" ]
+        },
+        "supportedHttpMethods": {
+          "additionalProperties": false,
+          "type": "object",
+          "description": "The supported HTTP method(s) for the resource.",
+          "properties": {
+            "GET": {
+              "$ref": "#/definitions/GetMethod"
+            },
+            "POST": {
+              "$ref": "#/definitions/PostMethod"
+            },
+            "PUT": {
+              "$ref": "#/definitions/PutMethod"
+            },
+            "PATCH": {
+              "$ref": "#/definitions/PatchMethod"
+            },
+            "DELETE": {
+              "$ref": "#/definitions/DeleteMethod"
+            }
+          }
+        },
+        "notifications": {
+          "description": "The notifications supported for the resource.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/Event"
+          }
+        },
+        "extensions": {
+          "description": "List of Extension Resources. Extensions follow the same rules as the parent resource.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/ResourceExtension"
+          }
+        }
+      },
+      "required": [ "name", "schema"]
+    },
+    "Event": {
+      "description": "An event related to a Resource",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the Event",
+          "pattern": "[a-z][A-Za-z]+",
+          "examples": [ "create" ]
+        },
+        "schema": {
+          "type": "string",
+          "description": "file path or URL of the event JSON Schema object.",
+          "examples": [ "Customer/AppliedCustomerBillingRateCreateEvent.schema.json" ]
+        },
+        "examples": {
+          "type": "array",
+          "description": "Use-case specific example payloads for the method.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/NotificationExample"
+          }
+        }
+      },
+      "required": [ "name", "schema" ]
+    },
+    "ResourceExtension": {
+      "description": "Describes the Resource Extension Object",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Named of the Resource Extension",
+          "pattern": "[A-Z][A-Za-z]+",
+          "examples": [ "VendorExtension" ]
+        },
+        "schema": {
+          "type": "string",
+          "description": "file path or URL of the resource JSON Schema object.",
+          "examples": [ "Customer/AppliedCustomerBillingRate.schema.json" ]
+        },
+        "baseResourceParameterRestrictions": {
+          "description": "Base Resource parameters can be restricted either by inclusion or exclusion.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ExcludedParameters"
+            },
+            {
+              "$ref": "#/definitions/IncludedParameters"
+            }
+          ]
+        }
+      }
+    },
+    "NotificationExample": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseExample"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "content-type": {
+              "type": "string",
+              "enum": [
+                "application/json"
+              ]
+            },
+            "request": {
+              "$ref": "#/definitions/ExampleFile"
+            }
+          },
+          "required": [ "content-type", "request" ]
+        }
+      ]
+    },
+    "MethodExample": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseExample"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pathParameters": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PathParameter"
+              },
+              "description": "Path parameters which are relevant for the example"
+            },
+            "content-type": {
+              "type": "string",
+              "enum": [
+                "application/json",
+                "application/json-patch+json",
+                "application/merge-patch+json",
+                "application/json-patch-query+json",
+                "application/json-patch+query"
+              ]
+            },
+            "request": {
+              "$ref": "#/definitions/ExampleFile"
+            },
+            "response": {
+              "$ref": "#/definitions/ExampleFile"
+            }
+          },
+          "required": [ "content-type" ]
+        }
+      ]
+    },
+    "BaseExample": {
+      "properties": {
+        "isCollection": {
+          "type": "boolean",
+          "description": "True if this is an array of resources. Currently used for GET ALL."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the example."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description which describes the example use case."
+        },
+        "queryParameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/QueryParameter"
+          },
+          "description": "Query parameters which are relevant for the example"
+        }
+      },
+      "required": [ "name", "description" ]
+    },
+    "ResourceExample": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the example."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description which describes the example."
+            }
+          }
+        },
+        {
+          "$ref": "#/definitions/ExampleFile"
+        }
+      ]
+    },
+    "PathParameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the path Parameter.",
+          "examples": [
+            "id"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "description": "The value of the path Parameter.",
+          "examples": [
+            "42"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "An additional description for the path Parameter.",
+          "examples": [
+            "Specifies the identifier of the resource to be returned."
+          ]
+        }
+      }
+    },
+    "QueryParameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the query Parameter.",
+          "examples": [
+            "fields"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "description": "The value of the query Parameter.",
+          "examples": [
+            "id,externalId,effectiveQualificationDate,expirationDate"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "An additional description for the query Parameter.",
+          "examples": [
+            "Specifies the fields which should be returned. See the design guide for details."
+          ]
+        }
+      }
+    },
+    "ExampleFile": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Of the payload."
+        },
+        "file": {
+          "type": "string",
+          "description": "Path and file which contains the example payload."
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "BaseMethod": {
+      "type": "object",
+      "properties": {
+        "security": {
+          "type": "array",
+          "items": {
+            "$ref": "oas3.0.X.schema.json#/definitions/SecurityRequirement"
+          }
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "'true' if this is a required method for the resource."
+        },
+        "examples": {
+          "type": "array",
+          "description": "Use-case specific example payloads for the method.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/MethodExample"
+          }
+        }
+      }
+    },
+    "GetMethod": {
+      "description": "Describes the HTTP GET method.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseMethod"
+        }
+      ]
+    },
+    "PostMethod": {
+      "description": "Describes the HTTP POST method.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseMethod"
+        }
+      ],
+      "properties": {
+        "requiredParameters": {
+          "description": "Parameters which are required for a POST operation. Required extension parameters should also be included here.",
+          "$ref": "#/definitions/RequiredParameters"
+        },
+        "nonRequiredParameters": {
+          "description": "Parameters which are required for a POST operation. Required extension parameters should also be included here.",
+          "$ref": "#/definitions/RequiredParameters"
+        },
+        "parameterRestrictions": {
+          "description": "Resources can be restricted either by inclusion or exclusion. Extension parameter restrictions should also be included here.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ExcludedParameters"
+            },
+            {
+              "$ref": "#/definitions/IncludedParameters"
+            }
+          ]
+        }
+    }
+    },
+    "PatchMethod": {
+      "description": "Describes the HTTP PATCH method.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseMethod"
+        }
+      ],
+      "properties": {
+        "parameterRestrictions": {
+          "description": "Resources can be restricted either by inclusion or exclusion. Extension parameter restrictions should also be included here.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ExcludedParameters"
+            },
+            {
+              "$ref": "#/definitions/IncludedParameters"
+            }
+          ]
+        }
+      }
+    },
+    "PutMethod": {
+      "description": "Describes the HTTP PUT method.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseMethod"
+        }
+      ],
+      "properties": {
+        "parameterRestrictions": {
+          "description": "Resources can be restricted either by inclusion or exclusion. Extension parameter restrictions should also be included here.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ExcludedParameters"
+            },
+            {
+              "$ref": "#/definitions/IncludedParameters"
+            }
+          ]
+        }
+      }
+    },
+    "DeleteMethod": {
+      "description": "Describes the HTTP DELETE method.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseMethod"
+        }
+      ]
+    },
+    "ExcludedParameters": {
+      "description": "Describes all resource parameters which should be EXCLUDED by an operation.",
+      "type": "object",
+      "properties": {
+        "excludedParameters": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "excludedParameters"
+      ]
+    },
+    "IncludedParameters": {
+      "description": "Describes all resource parameters which should be INCLUDED by an operation.",
+      "type": "object",
+      "properties": {
+        "includedParameters": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "includedParameters"
+      ]
+    },
+    "RequiredParameters": {
+      "description": "These are resource parameters which are REQUIRED for an operation.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
+

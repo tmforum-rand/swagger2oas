@@ -1,0 +1,19 @@
+{
+  "name": "swagger2oas",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@seriousme/openapi-schema-validator": "^1.6.0",
+    "ajv": "^6.12.5",
+    "command-line-args": "^5.2.0",
+    "fetch": "^1.1.0",
+    "js-yaml": "^3.13.1",
+    "node-fetch": "^2.6.1"
+  },
+  "description": ""
+}
