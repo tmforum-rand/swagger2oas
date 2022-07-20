@@ -5,6 +5,10 @@ const path = require('path');
 const yaml = require('js-yaml')
 const { v4: uuidv4 } = require('uuid')
 
+const Diff = require('diff');
+
+const gitDiff = require('git-diff')
+
 const commandLineArgs = require('command-line-args')
 
 const Ajv = require('ajv')
@@ -15,6 +19,8 @@ const { createEvent } = require('./generateEvent');
 
 const { validateAndUpdateProperties, getValuesByName, extractSchemaName } = require('./schemaUtils');
 const { adjustSchema, checkReferences, getObjectsWithProperty } = require('./schemaUtils')
+const { dereferenceSchema, dereferenceSchemas, flattenSchema, flattenSchemas, extractPaths } = require('./schemaUtils');
+const { exit } = require('process');
 
 const RULESSCHEMA = "tmf.openapi.generator.rules.v1.schema.json"
 const OAS3_SCHEMA = "oas3.0.X.schema.json"
@@ -23,52 +29,9 @@ const OPERATION_SAMPLES = '/documentation/operation-samples/'
 const RESOURCE_SAMPLES = '/documentation/resource-samples/'
 
 const optionDefinitions = [
-    { name: 'input', alias: 'i', type: String },
-    { name: 'schema-directory', alias: 's', type: String },
-    { name: 'output', alias: 'o', type: String },
-    { name: 'add-notification-examples', type: Boolean },
-    { name: 'validate-properties', type: Boolean },
-    { name: 'overwrite-events', type: Boolean },
-    { name: 'overwrite-examples', type: Boolean },
-    { name: 'api-target-directory', alias: 't', type: String },
-    { name: 'oas-directory-prefix', type: String },
-
-    { name: 'add-missing-schemas', type: Boolean },
-    { name: 'old-schema-directory', type: String },
-
-    { name: 'schema-mapping', type: String },
-    { name: 'copy-examples', type: Boolean }
-
+    { name: 'schema-directory-1', type: String },
+    { name: 'schema-directory-2', type: String }
 ]
-
-const notificationMapping= {
-    create: 'CreateEvent',
-    delete: 'DeleteEvent',
-    statechange: 'StateChangeEvent',
-    attributevaluechange: 'AttributeValueChangeEvent',
-    informationrequired: 'InformationRequiredEvent',
-    resolved: 'ResolvedEvent'
-}
-
-function randomInt(max) {
-    return Math.floor(Math.random() * max) 
-}
-
-const reportingSystem = `{
-    "id": "${randomInt(1000)}",
-    "name": "APP-${randomInt(1000)}",
-    "@type": "ReportingResource",
-    "@referredType": "LogicalResource"
-}`
-
-const source = `
-{
-    "id": "${randomInt(1000)}",
-    "name": "APP-${randomInt(1000)}",
-    "@type": "ReportingResource",
-    "@referredType": "LogicalResource"
-}
-`
 
 let options
 try {
@@ -81,92 +44,78 @@ try {
     process.exit(1)
 }
 
-const FILE      = options.input
+const SCHEMA_DIR_1      = options['schema-directory-1']
+const SCHEMA_DIR_2      = options['schema-directory-2']
 
-if(!FILE) {
-    console.log("Missing input file argument")
+if(!SCHEMA_DIR_1 || !SCHEMA_DIR_2) {
+    console.log("Missing input schema directory argument")
     process.exit(1)
 }
 
-const ID = (FILE?.match(/TMF[ ]?[0-9]{3}/g) || [""])[0]?.replace(/ /g,'')
-const SCHEMADIR = options['schema-directory']
-const API_SOURCE_DIR = path.dirname(FILE)
-const API_TARGET_DIR = options['api-target-directory']
-
 try {
+ 
+    const schemas_1 = readAllFiles(SCHEMA_DIR_1, 'schema.json')
+    const schemas_2 = readAllFiles(SCHEMA_DIR_2, 'schema.json')
+    
+    const all_resources_1 = Object.keys(schemas_1)
+    const all_resources_2 = Object.keys(schemas_2)
 
-    let OUTPUT    = options.output
-    if(!options.output) {
-        if(API_TARGET_DIR) {
-            OUTPUT = path.basename(API_TARGET_DIR) + '.rules.yaml'
-            OUTPUT = API_TARGET_DIR + '/' + OUTPUT
-        } else {
-            OUTPUT = path.basename(FILE)
-        }
-    } 
+    const common_resources = all_resources_1.filter(x => all_resources_2.includes(x))
 
-    const newSchemas = readAllFiles(SCHEMADIR, 'schema.json')
+    // console.log("... common: " + common_resources.join('\n'))
 
-    let oas3 = convertRules()
+    dereferenceSchemas(schemas_1)
+    dereferenceSchemas(schemas_2)
 
-    if(!SCHEMADIR) {
-        console.log("... schema directory not specified - unable to add schema references to rules")
-    } else {
-        const overwrite_events = options['overwrite-events']
-        oas3 = addSchema(oas3,SCHEMADIR,overwrite_events,newSchemas)
-    }
+    flattenSchemas(schemas_1)
+    flattenSchemas(schemas_2)
 
-    if(options['add-missing-schemas']) {
-        const OLD_SCHEMADIR=options['old-schema-directory']
-        oas3=addMissingSchemas(SCHEMADIR,OLD_SCHEMADIR,newSchemas,oas3)
-    }
-         
-    if(options['copy-examples']) {
-        const examples=getValuesByName(oas3,'file')
-        const overwrite=true
-        const logging=false
-        const copiedFiles=[]
+    for(const resource of common_resources) {
+        const flat_1 = flattenSchema(schemas_1,resource)
+        const paths_1 = extractPaths(flat_1).sort()
 
-        for(const example of examples) {
-            const copied=copyFile(API_TARGET_DIR,example,API_SOURCE_DIR,overwrite,logging)
-            if(copied) copiedFiles.push(example)
-        }
+        const flat_2 = flattenSchema(schemas_2,resource)
+        const paths_2 = extractPaths(flat_2).sort()
 
-        if(!isEmpty(copiedFiles)) {
-            console.log("... copy existing examples:")
-            for(const example of copiedFiles) {
-                console.log(`... ... ${example.replace(/^.\//i,'')}`)
+        const diff = gitDiff(paths_1.join('\n')+'\n', paths_2.join('\n')+'\n')
+
+        if(diff) {
+            console.log('resource: ' + resource)
+            const lines=diff.split('\n')
+            console.log("diff=" + lines)
+            const added=lines.filter(l => l.startsWith('+'))
+            for(const line of added) {
+                console.log("... " + line.split(',').join('\n...'))
+            }
+            const removed=lines.filter(l => l.startsWith('-'))
+            for(const line of removed) {
+                console.log("... " + line.split(',').join('\n...'))
             }
         }
+
+    //     const difference=[...paths_1.filter(x=>!paths_2.includes(x)), ...paths_2.filter(x=>!paths_1.includes(x))]
+    //     if(difference.length===0) {
+    // //            console.log("... equal")
+    //     } else {
+    //         console.log('resource: ' + resource)
+    //         console.log("... not equal:: " + paths_1.length + " " + paths_2.length)
+    //         console.log("... " + difference.join('\n... '))
+
+    //     }
+
+        // console.log('resource: ' + resource)
+        // console.log('... ' + paths.join('\n... '))
+        
     }
 
-    if(SCHEMADIR) {
-        const overwrite_events = options['overwrite-events']
-        oas3 = addNotificationSchema(oas3,SCHEMADIR,overwrite_events,newSchemas)
-    }
 
-    if(options['add-notification-examples']) {
-        const apidir = path.dirname(OUTPUT)
-        const overwrite = options['overwrite-examples']
-        oas3 = addNotificationExamples(apidir,oas3,API_SOURCE_DIR,API_TARGET_DIR,overwrite)
-    }
+    // const dereferenced = dereferenceSchema(schemas,resource.name,[],missing)
+    // console.log("validateAndUpdateProperties: dereferenced=" + JSON.stringify(dereferenced,null,2))
 
-    if(options['validate-properties']) {
-        oas3 = validateAndUpdateProperties(oas3,SCHEMADIR,newSchemas)
-    }
+    // const flattened = flattenSchema(schemas,resource.name)
+    // console.log("validateAndUpdateProperties: flattened=" + JSON.stringify(flattened,null,2))
 
-    const validationIssues = validate(oas3)
-
-    if(validationIssues.length>0) {
-        console.log("... not converted - validation of generated rules failed")
-        console.log('... ... ' + JSON.stringify(validationIssues,null,2).split('\n').join('\n... ... ') )
-        process.exit(1)
-    }
-
-    checkExistingReferences(oas3,SCHEMADIR)
-
-    writeOpenAPI(oas3,OUTPUT)
-    console.log("... rule: output to " + OUTPUT.replace(API_TARGET_DIR + '/',''))
+    // const paths = extractPaths(flattened).sort()
 
 
 } catch(error) {
