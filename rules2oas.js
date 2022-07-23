@@ -9,7 +9,7 @@ const commandLineArgs = require('command-line-args')
 
 const Ajv = require('ajv')
 
-const { readAllFiles, readJSONFile, readJSON, readSchema } = require('./fileUtils');
+const { readAllFiles, readJSONOrYAMLFile, readJSONOrYAML, readSchema } = require('./fileUtils');
 
 const { createEvent } = require('./generateEvent');
 
@@ -217,7 +217,7 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
     }
 
     const mappingFile = options['schema-mapping']
-    const schemaMapping=readJSONFile(mappingFile) // , {notFoundOK: true})
+    const schemaMapping=readJSONOrYAMLFile(mappingFile) // , {notFoundOK: true})
 
     // console.log("schemaMapping: " + JSON.stringify(schemaMapping))
 
@@ -274,7 +274,7 @@ function checkExistingReferences(obj,schemadir,seen) {
 
         absFilename=absFilename.replace('//','/').replace('schemas/schemas','schemas')
 
-        const referenced=readJSONFile(absFilename,{notFoundOK: true})
+        const referenced=readJSONOrYAMLFile(absFilename,{notFoundOK: true})
         if(isEmpty(referenced)) {
             console.log("... ISSUE: " + id + " :: unable to find referenced schema " + schema)
             console.log("... ... .: " + absFilename)
@@ -853,13 +853,9 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
 
     oas3.api?.resources?.forEach(resource => {
 
-        // console.log("resource.schema=" + resource.schema)
-
         if(!resource.schema) {
             console.log("... rule: adding schema for " + resource.name)
             let schema =  schemas[resource.name]?.filepath || "PLACEHOLDER"
-
-            // console.log("schema=" + schema)
 
             schema = "schemas/" + schema + "#" + resource.name
             resource.schema = schema
@@ -868,18 +864,6 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
             schema = "schemas/" + schema + "#" + resource.name
             resource.schema = schema
         }
-
-        // resource.notifications?.forEach(notification => {
-        //     if(!notification.schema) {
-        //         console.log("... rule: adding event schema for " + notification.name)
-        //         // console.log("notification=" + JSON.stringify(notification,null,2))
-
-        //         notification.schema = generateEventSchemaReference(resource.name,resource.schema, notification.name, overwrite_events,schemas)
-        //         //if(!notification.schema.contains('PLACEHOLDER')) {
-        //             schemas[notification.name]=readSchema(schemadir,notification.schema)
-        //         //}
-        //     }
-        // })
     })
 
     return oas3
@@ -1054,13 +1038,13 @@ function addNotificationExamples(apidir, oas, inputdir, apiTargetDirectory, over
 
     oas?.api?.resources?.forEach(resource => {
         const resourceExampleSource = resource.examples?.[0]?.file    
-        let resourceExample = readJSON(apidir, resourceExampleSource, {notFoundOK: true})
+        let resourceExample = readJSONOrYAML(apidir, resourceExampleSource, {notFoundOK: true})
 
         // console.log("resourceExample: inputdir=" + inputdir)
         // console.log("resourceExample: resourceExampleSource=" + resourceExampleSource)
 
         if(isEmpty(resourceExample)) {
-            resourceExample = readJSON(inputdir, resourceExampleSource, {notFoundOK: true})
+            resourceExample = readJSONOrYAML(inputdir, resourceExampleSource, {notFoundOK: true})
         }
 
         // console.log("resourceExample: " + JSON.stringify(resourceExample,null,2))
@@ -1111,23 +1095,6 @@ function createEventDescription(resource, event) {
     }
     return msg
 }
-function readJSON_old(apidir, filename, options) {
-    try {
-        const file = apidir + '/' + filename
-        // console.log("file=" + file)
-        const content = fs.readFileSync(file)
-        // console.log("content=" + content)
-
-        return JSON.parse(content)
-    } catch(error) {
-        if(!options?.notFoundOK) {
-            console.log("... ERROR reading file: " + filename) 
-            console.log("... ERROR: " + error)
-            // console.trace()       
-        } 
-    }
-    return {}
-}
 
 const SPACES=4
 function writeJSON(apidir, filename, content, overwrite, logging) {
@@ -1162,7 +1129,7 @@ function copyFile(target_dir, filename, source_dir, overwrite, logging) {
         const absSource = source_dir + '/' + filename
         createDirectory(absTarget)
         if(!fs.existsSync(absTarget)) {
-            const content=readJSONFile(absSource,{ignoreCapitalization: true})
+            const content=readJSONOrYAMLFile(absSource,{ignoreCapitalization: true})
             const text = JSON.stringify(content,null,4)
             fs.writeFileSync(absTarget, text)
             if(logging) console.log(`... ... created ${filename.replace(/^.\//i,'')}`)

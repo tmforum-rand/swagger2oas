@@ -86,12 +86,14 @@ function readAllFiles(dirname, pattern, basedir) {
 
 function readSchema(dir,file) { 
     let filename = file.split('#')[0]
-    if(filename.startsWith('schemas') && dir.endsWith('schemas/')) {
+    if(filename.startsWith('schemas') && 
+        (dir.endsWith('schemas/') || dir.endsWith('schemas'))) {
         filename = filename.replace('schemas/','')
     }
+ 
     const filePath = path.resolve(dir, filename);
 
-    const json = readJSON(dir, filename)
+    const json = readJSONOrYAML(dir, filename)
 
     return {    
         filename: filename.split('/').pop(), 
