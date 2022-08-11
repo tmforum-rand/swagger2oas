@@ -59,6 +59,7 @@ function createInformationPayloadTemplate(EVENT,RESOURCE) {
 }
 
 function createGenericPayloadTemplate(EVENT, RESOURCE, RESOURCE_SCHEMA_REF) {
+    RESOURCE_SCHEMA_REF = RESOURCE_SCHEMA_REF.split(path.sep).join(path.posix.sep);    
     const genericPayloadTemplate = `
     {
         "$schema": "http://json-schema.org/draft-07/schema#",
