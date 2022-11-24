@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "QuoteInformationRequiredEventPayload.schema.json",
+  "title": "QuoteInformationRequiredEventPayload",
+  "definitions": {
+    "QuoteInformationRequiredEventPayload": {
+      "$id": "#QuoteInformationRequiredEventPayload",
+      "description": "QuoteInformationRequiredEventPayload generic structure",
+      "required": [
+        "informationRequired"
+      ],
+      "type": "object",
+      "properties": {
+        "informationRequired": {
+          "$ref": "../../Common/InformationRequiredEvent.schema.json#InformationRequiredEvent"
+        }
+      }
+    }
+  }
+}

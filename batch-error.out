@@ -1,0 +1,628 @@
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF628_Performance/Performance.rules.yaml
+
+remaining properties: {
+  "rules SupportedObjectClassesTask": {
+    "operations": "POST",
+    "patchable": "ALL EXCEPT id, href"
+  },
+  "rules SupportedObjectTask": {
+    "operations": "POST",
+    "patchable": "ALL EXCEPT id, href"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF638_Service_Inventory/Service_Inventory.rules.yaml
+
+remaining properties: {
+  "rules Service": {
+    "sub mandatory in post": {
+      "relatedParty": "id, @referredType",
+      "relatedEntity": "id, @referredType",
+      "serviceRelationship": "relationshipType, service",
+      "note": "text",
+      "place": "role",
+      "characteristic": "name, value",
+      "supportingResource": "id",
+      "supportingService": "id",
+      "serviceOrderItem": "itemId, serviceOrderId",
+      "feature": "id",
+      "serviceSpecification": "id"
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF639_Resource_Inventory/Resource_Inventory.rules.yaml
+
+remaining properties: {
+  "rules LogicalResource": {
+    "operations": "NOOPRERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF640_Service_Activation/Service_Activation.rules.yaml
+
+remaining properties: {
+  "rules Service": {
+    "extra post responses": 202,
+    "extra patch responses": 202
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF651_Agreement/Agreement.rules.yaml
+
+remaining properties: {
+  "rules Agreement": {
+    "sub mandatory in post": {
+      "engagedParty": "name"
+    },
+    "defaults": {
+      "completionDate": "Current date",
+      "version": 0
+    }
+  },
+  "rules AgreementSpecification": {
+    "defaults": {
+      "isBundle": false
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF652_Resource_Order/Resource_Order.rules.yaml
+
+remaining properties: {
+  "rules ResourceOrder": {
+    "pre-conditions": [
+      "When creating a resource order (post) an order must not have the state, cancellationDate, cancellationReason, completionDate, orderDate fields",
+      "When creating a resource order (post) an order item must not have the state field",
+      "In relatedParty, the role is mandatory if the id identifies a party - optional if it is a party role."
+    ]
+  },
+  "rules CancelResourceOrder": {
+    "pre-conditions": [
+      "Resource order id must exist",
+      "When creating a cancel resource order (post) the id, href, effectiveCancellationDate and state fields must not be present in the request"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF658_Loyalty/Loyalty.rules.yaml
+
+remaining properties: {
+  "rules LoyaltyExecutionPoint": {
+    "operations": "GET"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF666_Account/Account.rules.yaml
+
+remaining properties: {
+  "rules PartyAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules BillingAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules SettlementAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules FinancialAccount": {
+    "sub mandatory in post": {
+      "taxExemption": "issuingJurisdiction, validFor",
+      "accountRelationship": "relationshipType, validFor",
+      "contact": "contactType, validFor",
+      "relatedParty": "id, name",
+      "accountBalance": "balanceType, amount, validFor"
+    },
+    "defaults": {
+      "id": "Automatically generated",
+      "href": "Automatically generated",
+      "lastModified": "Automatically generated"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF666_Account/Account.rules.yaml
+
+remaining properties: {
+  "rules PartyAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules BillingAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules SettlementAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules FinancialAccount": {
+    "sub mandatory in post": {
+      "taxExemption": "issuingJurisdiction, validFor",
+      "accountRelationship": "relationshipType, validFor",
+      "contact": "contactType, validFor",
+      "relatedParty": "id, name",
+      "accountBalance": "balanceType, amount, validFor"
+    },
+    "defaults": {
+      "id": "Automatically generated",
+      "href": "Automatically generated",
+      "lastModified": "Automatically generated"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF667_Document/Document.rules.yaml
+
+remaining properties: {
+  "rules ServiceCatalog": {
+    "operations": "GET, PATCH, POST, DELETE",
+    "patchable": "ALL EXCEPT id, href",
+    "notifications": [
+      "create",
+      "change",
+      "batch",
+      "delete"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF669_Party_Role/Party_Role.rules.yaml
+
+remaining properties: {
+  "rules PartyRole": {
+    "sub mandatory in post": {
+      "characteristic": "name, value",
+      "contactMedium": "mediumType, characteristic",
+      "account": "name",
+      "PartyRoleSpecificationRef": "name",
+      "creditProfile": "creditProfileDate, validFor"
+    },
+    "defaults": {
+      "engagedParty": "AUTO"
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF670_Payment_Method/Payment_Method.rules.yaml
+
+remaining properties: {
+  "rules Cash": {
+    "operations": "NOOPERATION"
+  },
+  "rules DigitalWallet": {
+    "operations": "NOOPERATION"
+  },
+  "rules TokenizedCard": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankAccountTransfer": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankAccountDebit": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankCard": {
+    "operations": "NOOPERATION"
+  },
+  "rules Voucher": {
+    "operations": "NOOPERATION"
+  },
+  "rules Check": {
+    "operations": "NOOPERATION"
+  },
+  "rules BucketPaymentRef": {
+    "operations": "NOOPERATION"
+  },
+  "rules LoyaltyRef": {
+    "operations": "NOOPERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF679_Product_Offering_Qualification/Product_Offering_Qualification.rules.yaml
+
+remaining properties: {
+  "rules ProductOfferingQualification": {
+    "pre-conditions": [
+      "When creating a productOfferingQualification (post) an item should not have the state, qualificationItemResult, alternateProductOfferingProposal fields valued",
+      "If productOfferingQualificationItem.action is not valued, add action is considered by default."
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF687_Stock/Stock.rules.yaml
+
+remaining properties: {
+  "rules productStockStatusType": {
+    "operations": "NOOPERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF696_Risk_Management/Risk_Management.rules.yaml
+
+remaining properties: {
+  "includeAsIs": [
+    "StringCharacteristic",
+    "StringArrayCharacteristic",
+    "IntegerCharacteristic",
+    "IntegerArrayCharacteristic",
+    "FloatCharacteristic",
+    "FloatArrayCharacteristic",
+    "BooleanCharacteristic",
+    "BooleanArrayCharacteristic",
+    "ObjectCharacteristic",
+    "ObjectArrayCharacteristic",
+    "MapCharacteristic",
+    "MapArrayCharacteristic",
+    "NumberCharacteristic",
+    "NumberArrayCharacteristic"
+  ]
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF702_Resource_Activation/Resource_Activation.rules.yaml
+
+remaining properties: {
+  "rules LogicalResource": {
+    "operations": "NOOPRERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF628_Performance/Performance.rules.yaml
+
+remaining properties: {
+  "rules SupportedObjectClassesTask": {
+    "operations": "POST",
+    "patchable": "ALL EXCEPT id, href"
+  },
+  "rules SupportedObjectTask": {
+    "operations": "POST",
+    "patchable": "ALL EXCEPT id, href"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF638_Service_Inventory/Service_Inventory.rules.yaml
+
+remaining properties: {
+  "rules Service": {
+    "sub mandatory in post": {
+      "relatedParty": "id, @referredType",
+      "relatedEntity": "id, @referredType",
+      "serviceRelationship": "relationshipType, service",
+      "note": "text",
+      "place": "role",
+      "characteristic": "name, value",
+      "supportingResource": "id",
+      "supportingService": "id",
+      "serviceOrderItem": "itemId, serviceOrderId",
+      "feature": "id",
+      "serviceSpecification": "id"
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF639_Resource_Inventory/Resource_Inventory.rules.yaml
+
+remaining properties: {
+  "rules LogicalResource": {
+    "operations": "NOOPRERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF640_Service_Activation/Service_Activation.rules.yaml
+
+remaining properties: {
+  "rules Service": {
+    "extra post responses": 202,
+    "extra patch responses": 202
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF651_Agreement/Agreement.rules.yaml
+
+remaining properties: {
+  "rules Agreement": {
+    "sub mandatory in post": {
+      "engagedParty": "name"
+    },
+    "defaults": {
+      "completionDate": "Current date",
+      "version": 0
+    }
+  },
+  "rules AgreementSpecification": {
+    "defaults": {
+      "isBundle": false
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF652_Resource_Order/Resource_Order.rules.yaml
+
+remaining properties: {
+  "rules ResourceOrder": {
+    "pre-conditions": [
+      "When creating a resource order (post) an order must not have the state, cancellationDate, cancellationReason, completionDate, orderDate fields",
+      "When creating a resource order (post) an order item must not have the state field",
+      "In relatedParty, the role is mandatory if the id identifies a party - optional if it is a party role."
+    ]
+  },
+  "rules CancelResourceOrder": {
+    "pre-conditions": [
+      "Resource order id must exist",
+      "When creating a cancel resource order (post) the id, href, effectiveCancellationDate and state fields must not be present in the request"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF658_Loyalty/Loyalty.rules.yaml
+
+remaining properties: {
+  "rules LoyaltyExecutionPoint": {
+    "operations": "GET"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF666_Account/Account.rules.yaml
+
+remaining properties: {
+  "rules PartyAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules BillingAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules SettlementAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules FinancialAccount": {
+    "sub mandatory in post": {
+      "taxExemption": "issuingJurisdiction, validFor",
+      "accountRelationship": "relationshipType, validFor",
+      "contact": "contactType, validFor",
+      "relatedParty": "id, name",
+      "accountBalance": "balanceType, amount, validFor"
+    },
+    "defaults": {
+      "id": "Automatically generated",
+      "href": "Automatically generated",
+      "lastModified": "Automatically generated"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF666_Account/Account.rules.yaml
+
+remaining properties: {
+  "rules PartyAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules BillingAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules SettlementAccount": {
+    "defaults": {
+      "billStructure.cycleSpecification.name": "Bill issuer choice",
+      "billStructure.format.name": "Standard invoice",
+      "billStructure.presentationMedia.name": "Electronic invoice"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  },
+  "rules FinancialAccount": {
+    "sub mandatory in post": {
+      "taxExemption": "issuingJurisdiction, validFor",
+      "accountRelationship": "relationshipType, validFor",
+      "contact": "contactType, validFor",
+      "relatedParty": "id, name",
+      "accountBalance": "balanceType, amount, validFor"
+    },
+    "defaults": {
+      "id": "Automatically generated",
+      "href": "Automatically generated",
+      "lastModified": "Automatically generated"
+    },
+    "pre-conditions": [
+      "The state attribute is mandatory in the response of the account creation"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF667_Document/Document.rules.yaml
+
+remaining properties: {
+  "rules ServiceCatalog": {
+    "operations": "GET, PATCH, POST, DELETE",
+    "patchable": "ALL EXCEPT id, href",
+    "notifications": [
+      "create",
+      "change",
+      "batch",
+      "delete"
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF669_Party_Role/Party_Role.rules.yaml
+
+remaining properties: {
+  "rules PartyRole": {
+    "sub mandatory in post": {
+      "characteristic": "name, value",
+      "contactMedium": "mediumType, characteristic",
+      "account": "name",
+      "PartyRoleSpecificationRef": "name",
+      "creditProfile": "creditProfileDate, validFor"
+    },
+    "defaults": {
+      "engagedParty": "AUTO"
+    }
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF670_Payment_Method/Payment_Method.rules.yaml
+
+remaining properties: {
+  "rules Cash": {
+    "operations": "NOOPERATION"
+  },
+  "rules DigitalWallet": {
+    "operations": "NOOPERATION"
+  },
+  "rules TokenizedCard": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankAccountTransfer": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankAccountDebit": {
+    "operations": "NOOPERATION"
+  },
+  "rules BankCard": {
+    "operations": "NOOPERATION"
+  },
+  "rules Voucher": {
+    "operations": "NOOPERATION"
+  },
+  "rules Check": {
+    "operations": "NOOPERATION"
+  },
+  "rules BucketPaymentRef": {
+    "operations": "NOOPERATION"
+  },
+  "rules LoyaltyRef": {
+    "operations": "NOOPERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF679_Product_Offering_Qualification/Product_Offering_Qualification.rules.yaml
+
+remaining properties: {
+  "rules ProductOfferingQualification": {
+    "pre-conditions": [
+      "When creating a productOfferingQualification (post) an item should not have the state, qualificationItemResult, alternateProductOfferingProposal fields valued",
+      "If productOfferingQualificationItem.action is not valued, add action is considered by default."
+    ]
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF687_Stock/Stock.rules.yaml
+
+remaining properties: {
+  "rules productStockStatusType": {
+    "operations": "NOOPERATION"
+  }
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF696_Risk_Management/Risk_Management.rules.yaml
+
+remaining properties: {
+  "includeAsIs": [
+    "StringCharacteristic",
+    "StringArrayCharacteristic",
+    "IntegerCharacteristic",
+    "IntegerArrayCharacteristic",
+    "FloatCharacteristic",
+    "FloatArrayCharacteristic",
+    "BooleanCharacteristic",
+    "BooleanArrayCharacteristic",
+    "ObjectCharacteristic",
+    "ObjectArrayCharacteristic",
+    "MapCharacteristic",
+    "MapArrayCharacteristic",
+    "NumberCharacteristic",
+    "NumberArrayCharacteristic"
+  ]
+}
+
+file: /mnt/c/Users/henri/Documents/TMF/Open_API_And_Data_Model/apis/TMF702_Resource_Activation/Resource_Activation.rules.yaml
+
+remaining properties: {
+  "rules LogicalResource": {
+    "operations": "NOOPRERATION"
+  }
+}

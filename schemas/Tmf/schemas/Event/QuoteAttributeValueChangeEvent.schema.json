@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "QuoteAttributeValueChangeEvent.schema.json",
+  "title": "QuoteAttributeValueChangeEvent",
+  "definitions": {
+    "QuoteAttributeValueChangeEvent": {
+      "$id": "#QuoteAttributeValueChangeEvent",
+      "description": "QuoteAttributeValueChangeEvent generic structure",
+      "required": [
+        "event"
+      ],
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "../QuoteAttributeValueChangeEventPayload.schema.json#/definitions/QuoteAttributeValueChangeEventPayload"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "../../Common/Event.schema.json#Event"
+        }
+      ]
+    }
+  }
+}

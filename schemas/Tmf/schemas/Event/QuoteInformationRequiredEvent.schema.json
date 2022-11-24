@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "QuoteInformationRequiredEvent.schema.json",
+  "title": "QuoteInformationRequiredEvent",
+  "definitions": {
+    "QuoteInformationRequiredEvent": {
+      "$id": "#QuoteInformationRequiredEvent",
+      "description": "QuoteInformationRequiredEvent generic structure",
+      "required": [
+        "event"
+      ],
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "../QuoteInformationRequiredEventPayload.schema.json#/definitions/QuoteInformationRequiredEventPayload"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "../../Common/Event.schema.json#Event"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "QuoteStateChangeEventPayload.schema.json",
+  "title": "QuoteStateChangeEventPayload",
+  "definitions": {
+    "QuoteStateChangeEventPayload": {
+      "$id": "#QuoteStateChangeEventPayload",
+      "description": "QuoteStateChangeEventPayload generic structure",
+      "required": [
+        "quote"
+      ],
+      "type": "object",
+      "properties": {
+        "quote": {
+          "$ref": "PLACEHOLDER#Quote"
+        }
+      }
+    }
+  }
+}

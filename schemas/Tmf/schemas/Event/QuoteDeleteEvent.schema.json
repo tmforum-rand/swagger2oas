@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "QuoteDeleteEvent.schema.json",
+  "title": "QuoteDeleteEvent",
+  "definitions": {
+    "QuoteDeleteEvent": {
+      "$id": "#QuoteDeleteEvent",
+      "description": "QuoteDeleteEvent generic structure",
+      "required": [
+        "event"
+      ],
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "../QuoteDeleteEventPayload.schema.json#/definitions/QuoteDeleteEventPayload"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "../../Common/Event.schema.json#Event"
+        }
+      ]
+    }
+  }
+}
