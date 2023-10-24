@@ -1,6 +1,6 @@
 # https://github.com/tmforum-rand/swagger2oas
  
-
+Used to convert V4 to V5 
 ## Install
 
 `npm install`
