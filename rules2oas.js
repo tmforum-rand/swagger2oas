@@ -866,7 +866,7 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
         if(schema?.added) {
             // console.log("########## new schema " + name)
             // console.log("########## new schema " + JSON.stringify(schema,2))
-            writeJSON(SCHEMADIR + "Tmf",  schema.filepath, schema.schema)
+            writeJSON(SCHEMADIR + "/Tmf",  schema.filepath, schema.schema)
         }
     })
 
@@ -875,6 +875,8 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
         if(!resource.schema) {
             console.log("... rule: adding schema for " + resource.name)
             let schema =  schemas[resource.name]?.filepath || "PLACEHOLDER"
+
+            if(!schema.toUpperCase().startsWith("TMF")) schema = "Tmf" + schema
 
             schema = "schemas/" + schema + "#" + resource.name
             schema = schema.replace("\/\/","\/")
@@ -1131,7 +1133,7 @@ function writeJSON(apidir, filename, content, overwrite, logging) {
         const text = JSON.stringify(content,null,4)
         let absFilename = apidir + '/' + filename
         
-        console.log("... absFilename=" + absFilename)
+        // console.log("... absFilename=" + absFilename)
 
         createDirectory(absFilename)
         absFilename=getFileNameIfMisspelling(absFilename)
@@ -1266,7 +1268,7 @@ function createHRef(oas, resource, id) {
 
 function checkIfResourceExists(new_schemas, old_schemas, resource) {
     if(!new_schemas[resource]) {
-        console.log(`... ### ISSUE:resource ${resource} missing in v5`)
+        // console.log(`... ### ISSUE:resource ${resource} missing in v5`)
         new_schemas[resource] = old_schemas[resource]
         new_schemas[resource].added = true
         // console.log(`...     ${JSON.stringify(new_schemas[resource],2)}`)
