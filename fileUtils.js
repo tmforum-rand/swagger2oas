@@ -32,7 +32,7 @@ function readJSONOrYAMLFile(file, options) {
         } else {
             if(!options?.notFoundOK) {
                 console.log("... ERROR reading file: " + file) 
-                console.log("... ERROR: " + error)  
+                console.log("...       " + error)  
                 // console.trace()     
             } 
         }
@@ -76,7 +76,9 @@ function readAllFiles(dirname, pattern, basedir) {
             if(!res[filename]) {
                 res[filename] = details
             } else {
-                console.log(`... issue: already seen ${filename} in ${res[filename].dir}`)
+                if(!filename.endsWith("Payload")) {
+                    console.log(`... issue: already seen ${filename} in ${res[filename].dir}`)
+                }
             }
         }
     })

@@ -105,15 +105,21 @@ try {
         }
     } 
 
+    const OLD_SCHEMADIR=options['old-schema-directory']
+
     const newSchemas = readAllFiles(SCHEMADIR, 'schema.json')
 
-    let oas3 = convertRules()
+    const oldSchemas = OLD_SCHEMADIR!=undefined ? readAllFiles(OLD_SCHEMADIR, 'schema.json') : {}
+
+    let oas3 = convertRules(newSchemas, oldSchemas)
 
     if(!SCHEMADIR) {
         console.log("... schema directory not specified - unable to add schema references to rules")
     } else {
         const overwrite_events = options['overwrite-events']
         oas3 = addSchema(oas3,SCHEMADIR,overwrite_events,newSchemas)
+        // oas3 = addSchema(oas3,SCHEMADIR,overwrite_events,newSchemas)
+
     }
 
     if(options['add-missing-schemas']) {
@@ -180,6 +186,8 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
     if(allSchemas.length==0) return oas3
 
     const oldSchemas = readAllFiles(old_schemadir, 'schema.json')
+
+    console.log("### oldSchemas " + Object.keys(oldSchemas))    
 
     const schemaIds = allSchemas.map(item => extractSchemaName(item))
     let allMissing = getAllMissingReferenced(schemaIds, newSchemas, oldSchemas)
@@ -272,7 +280,7 @@ function checkExistingReferences(obj,schemadir,seen) {
 
         if(first==last) absFilename=absFilename.replace(first,'')
 
-        absFilename=absFilename.replace('//','/').replace('schemas/schemas','schemas')
+        absFilename=absFilename.replace('\/\/','\/').replace('schemas/schemas','schemas')
 
         const referenced=readJSONOrYAMLFile(absFilename,{notFoundOK: true})
         if(isEmpty(referenced)) {
@@ -324,7 +332,7 @@ function getAllMissingReferenced(referenced, newSchemas, oldSchemas,seen,missing
     return res
 }
 
-function convertRules() {
+function convertRules(newSchemas, oldSchemas) {
     const oas3 = {}
 
     oas3.rulesVersion = "1.0.0"
@@ -391,6 +399,8 @@ function convertRules() {
 
         resource.name = resourceName
         resource.schema = ""
+
+        checkIfResourceExists(newSchemas, oldSchemas, resource.name)
 
         addResourceExample(resourceSamples, resourceName, resource)
 
@@ -851,6 +861,15 @@ process.on('unhandledRejection', (err) => {
 function addSchema(oas3,schemadir,overwrite_events,schemas) {
     schemas = schemas || readAllFiles(schemadir,'schema.json')
 
+    Object.keys(schemas).forEach(name => {
+        const schema = schemas[name]
+        if(schema?.added) {
+            // console.log("########## new schema " + name)
+            // console.log("########## new schema " + JSON.stringify(schema,2))
+            writeJSON(SCHEMADIR + "Tmf",  schema.filepath, schema.schema)
+        }
+    })
+
     oas3.api?.resources?.forEach(resource => {
 
         if(!resource.schema) {
@@ -858,10 +877,12 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
             let schema =  schemas[resource.name]?.filepath || "PLACEHOLDER"
 
             schema = "schemas/" + schema + "#" + resource.name
+            schema = schema.replace("\/\/","\/")
             resource.schema = schema
         } else if(resource.schema && resource.schema.includes("PLACEHOLDER")) {
             let schema =  schemas[resource.name]?.filepath
             schema = "schemas/" + schema + "#" + resource.name
+            schema = schema.replace("\/\/","\/")
             resource.schema = schema
         }
     })
@@ -914,7 +935,9 @@ function readAllFiles_old(dir,basedir) {
             if(!res[filename]) {
                 res[filename] = details
             } else {
-                console.log(`... ISSUE: already seen ${filename} (${filePath}) in ${res[filename].dir}`)
+                if(!filename.endsWith("Payload")) {
+                    console.log(`... ISSUE: already seen ${filename} (${filePath}) in ${res[filename].dir}`)
+                }
             }
         }
     })
@@ -1018,7 +1041,10 @@ function saveEvents(domain,events,overwrite) {
 }
 
 function createDirectory(file) {
-    const dir = path.dirname(file).replace(/^(\.\/)+/,'')
+    // const dir = path.dirname(file).replace(/^(\.\/)+/,'')
+    const dir = path.dirname(file)
+
+    // console.log("file=" + file + " dir=" + dir)
 
     if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
 } 
@@ -1098,9 +1124,15 @@ function createEventDescription(resource, event) {
 
 const SPACES=4
 function writeJSON(apidir, filename, content, overwrite, logging) {
+    overwrite = overwrite || false
+    logging = logging || false
+
     try {
         const text = JSON.stringify(content,null,4)
         let absFilename = apidir + '/' + filename
+        
+        console.log("... absFilename=" + absFilename)
+
         createDirectory(absFilename)
         absFilename=getFileNameIfMisspelling(absFilename)
         if(!fs.existsSync(absFilename) || overwrite) {
@@ -1229,4 +1261,14 @@ function createHRef(oas, resource, id) {
     let href = oas?.servers?.[0] || 'http://servername'
     href = href + '/' + resource + '/' + id
     return href
+}
+
+
+function checkIfResourceExists(new_schemas, old_schemas, resource) {
+    if(!new_schemas[resource]) {
+        console.log(`... ### ISSUE:resource ${resource} missing in v5`)
+        new_schemas[resource] = old_schemas[resource]
+        new_schemas[resource].added = true
+        // console.log(`...     ${JSON.stringify(new_schemas[resource],2)}`)
+    }
 }
