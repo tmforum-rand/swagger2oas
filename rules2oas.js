@@ -203,12 +203,13 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
 
                 old.schema = adjustSchema(old.schema)    
 
-                writeJSON(schemadir + '/' + newPath, old.filename, old.schema)
+                const p = path.join(schemadir, newPath)
+                writeJSON(p, old.filename, old.schema)
                 // console.log("... copied " + old.filename)    
                 copiedSchemas.push(old.filename)
 
                 newSchemas[missing].filename = old.filename
-                newSchemas[missing].filepath = newPath + '/' + newSchemas[missing].filename
+                newSchemas[missing].filepath = path.join(newPath, newSchemas[missing].filename)
 
                 updated=true
             }
@@ -234,7 +235,7 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
         console.log("... " + modified.length + " schemas with corrected references")
         for(const schema of modified) {
             if(schema.updated) {
-                const dir=schemadir + '/' + path.dirname(schema.filepath)
+                const dir=path.join(schemadir, path.dirname(schema.filepath))
                 // console.log("modified: " + schema.filename + " dir=" + dir)
                 const overwrite=true
                 const logging=false
@@ -280,7 +281,8 @@ function checkExistingReferences(obj,schemadir,seen) {
 
         if(first==last) absFilename=absFilename.replace(first,'')
 
-        absFilename=absFilename.replace('\/\/','\/').replace('schemas/schemas','schemas')
+        // absFilename=absFilename.replace('\/\/','\/').replace('schemas/schemas','schemas')
+        absFilename = path.normalize(absFilename)
 
         const referenced=readJSONOrYAMLFile(absFilename,{notFoundOK: true})
         if(isEmpty(referenced)) {
@@ -682,7 +684,7 @@ function readResourceSamples(apiDir, dir) {
 
 function readOperationsSamples(apiDir, dir) {
     let result = {}
-    let operationsSampleDir = apiDir + dir
+    let operationsSampleDir = path.join(apiDir, dir)
 
     if(!fs.existsSync(operationsSampleDir)) return result
 
@@ -805,7 +807,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
                 for(const fileRef of fileRefs) {
                     // console.log("fileRef: " + JSON.stringify(fileRef))
                     if(!fileRef.file?.startsWith('./documentation') && !fileRef.file?.startsWith('documentation')) {
-                        fileRef.file = 'documentation/operation-samples/' + fileRef.file
+                        fileRef.file = path.join('documentation', 'operation-samples', fileRef.file)
                         fileRef.file = fileRef.file.replace('/./','/')
                     }
                 }
@@ -821,7 +823,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
 function isFileJSONArray(dir, file) {
     let res = false        
     try { 
-        let content = fs.readFileSync(dir + '/' + file, 'utf-8')
+        let content = fs.readFileSync(path.join(dir,file), 'utf-8')
         content = content.trim()
         if(content.startsWith('[')) res=true
     } catch(e) {
@@ -839,15 +841,15 @@ function getSampleFilename(samples, file) {
 
     let matching = samples.files.filter( f => f.startsWith(file))        
     if(matching.length) {
-        result = samples.directory + '/' + matching[0]
+        result = path.join(samples.directory, matching[0])
     } else {
         result = file + '_sample.json'
     }
 
-    if(result.startsWith('/')) result = '.' + result
-    if(!result.startsWith('./')) result = './' + result
+    if(result.startsWith('/')) result = path.join('.', result)
+    if(!result.startsWith('./')) result = path.join('.', result)
 
-    result = result.replace('//','/')
+    result = path.normalice(result) // result.replace('//','/')
 
     return result
 }
@@ -866,7 +868,7 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
         if(schema?.added) {
             // console.log("########## new schema " + name)
             // console.log("########## new schema " + JSON.stringify(schema,2))
-            writeJSON(SCHEMADIR + "/Tmf",  schema.filepath, schema.schema)
+            writeJSON(path.join(SCHEMADIR, "Tmf"), schema.filepath, schema.schema)
         }
     })
 
@@ -876,7 +878,7 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
             console.log("... rule: adding schema for " + resource.name)
             let schema =  schemas[resource.name]?.filepath || "PLACEHOLDER"
 
-            if(!schema.toUpperCase().startsWith("TMF")) schema = "Tmf" + schema
+            if(!schema.toUpperCase().includes("TMF")) schema = "Tmf" + schema
 
             schema = "schemas/" + schema + "#" + resource.name
             schema = schema.replace("\/\/","\/")
@@ -1015,14 +1017,14 @@ function saveEvents(domain,events,overwrite) {
     const eventId = events.event['$id']
     const payloadId = events.payload['$id']
 
-    let eventFilename = SCHEMADIR + '/Tmf/' + domainPart + '/Event/' + eventId
-    let payloadFilename = SCHEMADIR + '/Tmf/' + domainPart + '/' + payloadId
+    let eventFilename = path.join(SCHEMADIR, 'Tmf', domainPart, 'Event', eventId)
+    let payloadFilename = path.join(SCHEMADIR, 'Tmf', domainPart, '/', payloadId)
 
     // console.log("saveEvents:: eventFilename=" + eventFilename)
     // console.log("saveEvents:: payloadFilename=" + payloadFilename)
 
-    eventFilename = eventFilename.replace('//','/')
-    payloadFilename = payloadFilename.replace('//','/')
+    eventFilename = path.normalize(eventFilename) // eventFilename.replace('//','/')
+    payloadFilename = path.normalize(payloadFilename) // payloadFilename.replace('//','/')
 
     createDirectory(eventFilename)
     createDirectory(payloadFilename)
@@ -1159,9 +1161,11 @@ function getFileNameIfMisspelling(filename) {
 
 function copyFile(target_dir, filename, source_dir, overwrite, logging) {
     try {
-        const absTarget = target_dir + '/' + filename
-        const absSource = source_dir + '/' + filename
+        const absTarget = path.join(target_dir, filename)
+        const absSource = path.join(source_dir, filename)
+
         createDirectory(absTarget)
+        
         if(!fs.existsSync(absTarget)) {
             const content=readJSONOrYAMLFile(absSource,{ignoreCapitalization: true})
             const text = JSON.stringify(content,null,4)
