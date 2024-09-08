@@ -1,0 +1,58 @@
+
+#
+# Assuming $APIS points to like OAS_Open_API_And_Data_Model/apis
+#
+
+#
+# Generate diagrams for as well as images in SVG format
+# 
+java -jar oastooling-gen5-7.0.2-SNAPSHOT.jar diagrams 
+    --openapi $APIS/TMF680_Recommendation/oas/TMF680-Recommendation-v5.0.0.oas.yaml 
+    --rules $APIS/TMF680_Recommendation/TMF680_Recommendation.rules.yaml 
+    --working-directory $APIS/TMF680_Recommendation 
+    --target-directory $APIS/TMF680_Recommendation/generated/diagrams 
+    --generate-images 
+    --image-format svg
+
+#
+# Generate the userguide
+# 
+java -jar oastooling-gen5-7.0.2-SNAPSHOT.jar userguide 
+    --openapi $APIS/TMF680_Recommendation/oas/TMF680-Recommendation-v5.0.0.oas.yaml 
+    --generated-only 
+    --image-format svg 
+    --rules $APIS/TMF680_Recommendation/TMF680_Recommendation.rules.yaml 
+    --generated-target-directory $APIS/TMF680_Recommendation/generated/documentation/userguide 
+    --working-directory $APIS/TMF680_Recommendation 
+    --target-directory $APIS/TMF680_Recommendation/documentation/userguide 
+    --diagrams $APIS/TMF680_Recommendation/generated/diagrams/diagrams.yaml -o TMF680_userguide.adoc
+
+
+#
+# Generate the conformance.yaml
+#
+# Note: This should be once if the conformance.yaml does not exist.
+# The conformance.yaml is then used to state the conformane requirements.
+# Must be regenerated when there are changes to the API affecting conformance statements
+# (like new mandatory conformance items and not necessary for optional items) 
+#
+java -jar oastooling-gen5-7.0.2-SNAPSHOT.jar conformance-data 
+    --openapi $APIS/TMF680_Recommendation/oas/TMF680-Recommendation-v5.0.0.oas.yaml 
+    --rules $APIS/TMF680_Recommendation/TMF680_Recommendation.rules.yaml 
+    --working-directory $APIS/TMF680_Recommendation 
+    --conformance $APIS/TMF680_Recommendation/documentation/conformance/conformance.yaml 
+    --generated-target-directory $APIS/TMF680_Recommendation/generated/conformance 
+    --target-directory $APIS/TMF680_Recommendation/documentation/conformance 
+    --output TMF680_conformance.yaml
+
+#
+# Generate the conformance specification based on the conformance.yaml
+#
+java -jar oastooling-gen5-7.0.2-SNAPSHOT.jar conformance-guide 
+    --openapi $APIS/TMF680_Recommendation/oas/TMF680-Recommendation-v5.0.0.oas.yaml 
+    --rules $APIS/TMF680_Recommendation/TMF680_Recommendation.rules.yaml 
+    --working-directory $APIS/TMF680_Recommendation 
+    --conformance $APIS/TMF680_Recommendation/documentation/conformance/TMF680_conformance.yaml 
+    --generated-target-directory $APIS/TMF680_Recommendation/generated/conformance 
+    --target-directory $APIS/TMF680_Recommendation/documentation/conformance 
+    --output TMF680_conformance.adoc

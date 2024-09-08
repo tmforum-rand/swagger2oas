@@ -18,7 +18,7 @@ function createEventTemplate(DOMAIN, EVENT,NOTIFICATION) {
                 "type": "object",
                 "properties": {
                     "event": {
-                        "$ref": "../${EVENT}Payload.schema.json#/definitions/${EVENT}Payload"
+                        "$ref": "./${EVENT}Payload.schema.json#/definitions/${EVENT}Payload"
                     }
                 },
                 "allOf": [
@@ -73,7 +73,7 @@ function createGenericPayloadTemplate(EVENT, RESOURCE, RESOURCE_SCHEMA_REF) {
                 "type": "object",
                 "properties": {
                     "${RESOURCE}": {
-                        "$ref": "${RESOURCE_SCHEMA_REF}"
+                        "$ref": "../${RESOURCE_SCHEMA_REF}"
                     }
                 }
             }

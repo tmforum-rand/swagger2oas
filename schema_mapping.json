@@ -1,5 +1,4 @@
 {
-    "GcAddressable": "Core/Addressable.schema.json#Addressable",
-    "GcExtensible": "Core/Extensible.schema.json#Extensible"
+    "RelatedParty": "EngagedParty/RelatedPartyOrPartyRole.schema.json#RelatedPartyOrPartyRole"
 }
 

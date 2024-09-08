@@ -10,69 +10,191 @@ function lowerCaseLeading(str) {
     return str.charAt(0).toLowerCase() + str.slice(1)
 }
 
-function checkReferences(schemas,schemaMapping,schemaDirectory) {
+const checkedSchemas=[]
+
+function checkReferencesForSchema(id, schemas, schemaMapping, schemaDirectory) {
     const res=[]
-    const ids = Object.keys(schemas)
-    for(const id of ids) {
-        // console.log("id=" + id)
-        const schema=schemas[id]?.schema
-        if(schema) {
-            const dir=schemas[id]?.absPath
-            const refs=getObjectsWithProperty(schema,'$ref')
-            for(const refItem of refs) {
-                const ref=refItem['$ref']
-                const refId=extractSchemaName(ref)
-                // console.log("checkReferences::refId=" + refId)
 
-                if(schemaMapping[refId]) {
-                    // console.log("### schemaMapping:" + schemaMapping[refId])
-                    const filename=schemaMapping[refId].split('#')[0]
-                    const absFilename=schemaDirectory + '/' + filename
+    if(checkedSchemas.includes(id)) {
+        return res
+    }
 
-                    const relativePath=getRelativePath(dir,path.dirname(absFilename))
-                    const newRef=relativePath + '/' + path.basename(filename) + '#' + schemaMapping[refId].split('#')[1]
+    checkedSchemas.push(id)
 
-                    // console.log(id + ' new ref=' + newRef)
-                    if(refItem['$ref']!=newRef) {
-                        refItem['$ref']=newRef
-                        schemas[id].updated=true
-                        res.push(schemas[id])
+    // console.log("id=" + id)
+    const schema=schemas[id]?.schema
+    if(schema) {
+        const dir=schemas[id]?.absPath
+        const containingFile=schemas[id]?.filename
+
+        const refs=getObjectsWithProperty(schema,'$ref')
+        for(const refItem of refs) {
+            const ref=refItem['$ref']
+            const refId=extractSchemaName(ref)
+            
+            // console.log("checkReferences::schema=" + id + " refId=" + refId )
+            
+            if(checkedSchemas.includes(refId)) continue
+
+            // console.log("checkReferences::refId=" + refId + " refItem=" + JSON.stringify(refItem))
+
+            if(schemaMapping[refId]) {
+                // console.log("### schemaMapping:" + schemaMapping[refId])
+                const filename=schemaMapping[refId].split('#')[0]
+                const absFilename=path.join(schemaDirectory,filename)
+
+                const relativePath=getRelativePath(dir,path.dirname(absFilename))
+                const newRef=relativePath + '/' + path.basename(filename) + '#' + schemaMapping[refId].split('#')[1]
+
+                // console.log(id + ' new ref=' + newRef)
+                if(refItem['$ref']!=newRef) {
+
+                    // console.log("###2 update ref id=" + id + " oldRef=" + refItem['$ref'] + " newRef=" + newRef)
+
+                    getRelativePath(dir,path.dirname(absFilename),true)
+
+                    refItem['$ref']=newRef
+                    schemas[id].updated=true
+                    res.push(schemas[id])
+                }
+
+            } else {
+                // console.log("ref=" + ref)
+
+                let filename=path.join(dir,ref).split('#')[0]
+                filename=simplifyPath(filename)
+
+                const stat=fs.existsSync(filename)
+                if(!stat) {
+                    // let existAtLocation=schemas[refId]?.absFilename || ''
+                    let existAtLocation=schemas[refId]?.absPath || ''
+
+                    // console.log("ref=" + ref + " filename=" + filename)
+
+                    // console.log("schema=" + id + " ref=" + ref + " existAtLocation=" + existAtLocation)
+
+                    // existAtLocation=existAtLocation.replace(OLDDIR,NEWDIR)
+
+                    // if(!existAtLocation.startsWith(NEWDIR)) {
+                    //     existAtLocation=NEWDIR + "/" + existAtLocation
+                    //     existAtLocation=existAtLocation.replace("\/\/","\/")
+                    // }
+                    // console.log("ref=" + ref + " existAtLocation=" + existAtLocation + " dir=" + dir)
+
+                    if(existAtLocation) {
+                        // console.log(refId + " not found as " + filename + " " + existAtLocation)
+                        // console.log(id + " at location " + dir)
+
+                        const containingAtDir = dir.replace(containingFile,'')
+                        existAtLocation = existAtLocation.replace(filename,'')
+
+                        const relativePath=getRelativePath(containingAtDir,existAtLocation)
+
+                        const newRef=relativePath + '/' + path.basename(filename) + '#' + ref.split('#')[1]
+
+                        // console.log(id + ' new ref=' + newRef)
+                        if(refItem['$ref']!=newRef) {
+
+                            // console.log("###1 update ref id=" + id + " oldRef=" + refItem['$ref'] + " newRef=" + newRef)
+                            // console.log("   dir=" + dir + " existAtLocation=" + existAtLocation)
+
+                            getRelativePath(containingAtDir,existAtLocation,true)
+
+                            refItem['$ref']=newRef
+                            schemas[id].updated=true
+                            res.push(schemas[id])
+                        }
                     }
 
                 } else {
-                    // console.log("ref=" + ref)
 
-                    let filename=(dir+'/'+ref).split('#')[0]
-                    filename=simplifyPath(filename)
-
-                    const stat=fs.existsSync(filename)
-                    if(!stat) {
-                        let existAtLocation=schemas[refId]?.absPath || ''
-                        if(existAtLocation) {
-                            // console.log(refId + " not found as " + filename + " " + existAtLocation)
-                            // console.log(id + " at location " + dir)
-                            const relativePath=getRelativePath(dir,existAtLocation)
-                            const newRef=relativePath + '/' + path.basename(filename) + '#' + ref.split('#')[1]
-
-                            // console.log(id + ' new ref=' + newRef)
-                            if(refItem['$ref']!=newRef) {
-                                refItem['$ref']=newRef
-                                schemas[id].updated=true
-                                res.push(schemas[id])
-                            }
-                        }
-                    }
+                    // console.log("###2 checkReferencesForSchema id=" + id + " stat=" + stat)
+                    // found in expected location
                 }
             }
         }
     }
+
     return res
 }
 
-function getRelativePath(base,referenced) {
+
+function checkReferences(schemas,schemaMapping,schemaDirectory) {
+    const res=[]
+    const ids = Object.keys(schemas)
+    for(const id of ids) {
+        checkReferencesForSchema(id, schemas, schemaMapping, schemaDirectory)
+
+        // // console.log("id=" + id)
+        // const schema=schemas[id]?.schema
+        // if(schema) {
+        //     const dir=schemas[id]?.absPath
+        //     const refs=getObjectsWithProperty(schema,'$ref')
+        //     for(const refItem of refs) {
+        //         const ref=refItem['$ref']
+        //         const refId=extractSchemaName(ref)
+        //         // console.log("checkReferences::refId=" + refId)
+
+        //         if(schemaMapping[refId]) {
+        //             // console.log("### schemaMapping:" + schemaMapping[refId])
+        //             const filename=schemaMapping[refId].split('#')[0]
+        //             const absFilename=path.join(schemaDirectory,filename)
+
+        //             const relativePath=getRelativePath(dir,path.dirname(absFilename))
+        //             const newRef=relativePath + '/' + path.basename(filename) + '#' + schemaMapping[refId].split('#')[1]
+
+        //             // console.log(id + ' new ref=' + newRef)
+        //             if(refItem['$ref']!=newRef) {
+        //                 refItem['$ref']=newRef
+        //                 schemas[id].updated=true
+        //                 res.push(schemas[id])
+        //             }
+
+        //         } else {
+        //             // console.log("ref=" + ref)
+
+        //             let filename=path.join(dir,ref).split('#')[0]
+        //             filename=simplifyPath(filename)
+
+        //             const stat=fs.existsSync(filename)
+        //             if(!stat) {
+        //                 let existAtLocation=schemas[refId]?.absPath || ''
+        //                 if(existAtLocation) {
+        //                     // console.log(refId + " not found as " + filename + " " + existAtLocation)
+        //                     // console.log(id + " at location " + dir)
+        //                     const relativePath=getRelativePath(dir,existAtLocation)
+        //                     const newRef=relativePath + '/' + path.basename(filename) + '#' + ref.split('#')[1]
+
+        //                     // console.log(id + ' new ref=' + newRef)
+        //                     if(refItem['$ref']!=newRef) {
+        //                         refItem['$ref']=newRef
+        //                         schemas[id].updated=true
+        //                         res.push(schemas[id])
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+    }
+    return res
+}
+
+
+
+function getRelativePath(base,referenced,logging) {
+    logging = logging || false
+
     let baseParts
     let referencedParts
     
+    // base = base.replace(/\/.*\.schema\.json/,"")
+    // referenced = referenced.replace(/\/.*\.schema\.json/,"")
+
+    if(base === referenced) {
+        return '.'
+    }
+
     if(base.includes('schemas')) {
         const sub=base.split('schemas')[1]
         baseParts=sub.split('/')
@@ -91,9 +213,13 @@ function getRelativePath(base,referenced) {
     const minLength=Math.min(baseParts.length,referencedParts.length)
 
     while(idx<minLength && baseParts[idx]==referencedParts[idx]) idx++
-    // console.log("getRelativePath:       base=" + base + " idx=" + idx)
-    // console.log("getRelativePath: referenced=" + referenced + " idx=" + idx)
-    // console.log("getRelativePath:       next=" + baseParts[idx])
+    
+    // if(logging) {
+    //     console.log("### getRelativePath:       base=" + base + " idx=" + idx)
+    //     console.log("### getRelativePath: referenced=" + referenced + " idx=" + idx)
+    //     console.log("### getRelativePath:       next=" + baseParts[idx])
+    // }
+
     let prefix=''
     let pivot=idx
     while(idx<baseParts.length) {
@@ -107,6 +233,8 @@ function getRelativePath(base,referenced) {
     }
 
     // console.log("getRelativePath:     prefix=" + prefix)
+
+    if(prefix==='') prefix='.'
 
     return prefix
 }
@@ -137,20 +265,24 @@ function adjustSchema(schema) {
     return newSchema
 }  
 
-function validateAndUpdateProperties(oas,schemadir,schemas) {
+function validateAndUpdateProperties(oas, schemadir, schemas, add_if_missing) {
     schemas = schemas || readAllFiles(schemadir, 'schema.json')
 
     const resources = oas?.api?.resources
 
     if(resources) {
-        const missing=[]
-        const errors=[]
-
+        
         for(let resource of resources) {
+
+            const missing=[]
+            const errors=[]
+
+            const missing_properties=[]
+
             // console.log("validateAndUpdateProperties: resource=" + resource?.name)
 
             // console.log("validateAndUpdateProperties: resource=" + resource?.name + " " + JSON.stringify(resource,null,2))
-            const dereferenced = dereferenceSchema(schemas,resource.name,[],missing)
+            const dereferenced = dereferenceSchema(schemas,resource.name,[],missing,add_if_missing)
             // console.log("validateAndUpdateProperties: dereferenced=" + JSON.stringify(dereferenced,null,2))
 
             const flattened = flattenSchema(schemas,resource.name)
@@ -176,6 +308,7 @@ function validateAndUpdateProperties(oas,schemadir,schemas) {
                                 let foundAs = paths.find(item => item.endsWith(required))
                                 if(!replace) {
                                     const issue=`${required} not found in ${resource.name} schema`
+                                    if(!missing_properties.includes(required)) missing_properties.push(required)
                                     if(!errors.includes(issue)) {
                                         console.log(`... ISSUE: validate required/restricted: ${issue}`)
                                         errors.push(issue)
@@ -191,6 +324,7 @@ function validateAndUpdateProperties(oas,schemadir,schemas) {
                                 } else {
                                     if(!foundAs) {
                                         const issue=`${required} not found in ${resource.name} schema`
+                                        if(!missing_properties.includes(required)) missing_properties.push(required)
                                         if(!errors.includes(issue)) {
                                             console.log(`... ISSUE: validate required/restricted: ${issue}`)
                                             errors.push(issue)
@@ -214,6 +348,11 @@ function validateAndUpdateProperties(oas,schemadir,schemas) {
                     }
                 }
             }
+
+            if(missing_properties.length>0) {
+                // console.log("### validateAndUpdate resource=" + resource.name + " missing=" + JSON.stringify(missing_properties))
+                add_properties(resource.name, schemas, missing_properties)
+            }
         }
     }
 
@@ -221,6 +360,48 @@ function validateAndUpdateProperties(oas,schemadir,schemas) {
     // console.log("validateAndUpdateProperties: schemas=" + JSON.stringify(schemas,null,2))
 
     return oas
+}
+
+function add_properties(schema, schemas, missing_properties) {
+    const oldSchema = schemas.OLD[schema]
+    
+    // console.log("add_properties: schema=" + schema + " properties=" + missing_properties)
+
+    const definitions = getDefinitions(oldSchema.schema)
+
+    // console.log("add_properties: schema=" + schema + " definitions=" + JSON.stringify(definitions,null,2))
+
+    const missing = [...new Set(missing_properties.map((p) => p.replace(/\..*/,"")))]
+
+    for(const property of missing) {
+        // console.log("add_properties: property=" + property)
+        const def = get_property(property, definitions)
+        if(def) {
+            // console.log("add_properties: property=" + property + " definition=" + JSON.stringify(def))
+            addPropertyToSchema(schema,schemas,property,def)
+        } else {
+            console.log("... ISSUE: property " + property + " is found in old rule file, but missing in both old and new schemas")
+        }
+    }
+}
+
+function get_property(property, definition) {
+    return definition?.properties?.[property]
+}
+
+function addPropertyToSchema(schema,schemas,property,def) {
+    const schemaTarget = schemas[schema].schema
+    const definition = getDefinitions(schemaTarget)
+
+    if(definition?.properties) {
+        definition.properties[property] = def
+    } else {
+        definition['properties'] = {}
+        definition.properties[property] = def
+    }
+    console.log("... ... adding property " + property + " to schema " + schema)
+
+    schemas[schema].updated = true
 }
 
 function extractPaths(schema, prefix) {
@@ -371,19 +552,36 @@ function dereferenceSchemas(schemas) {
 }
 
 
-function dereferenceSchema(schemas,schema,seen,missing) {
+function dereferenceSchema(schemas,schema,seen,missing,add_if_missing) {
     seen = seen || []
     missing = missing || []
 
-    // console.log("dereferenceSchema: missing= " + missing)
+    // console.log("dereferenceSchema: missing= " + missing + " add_if_missing=" + add_if_missing)
 
     if(!schemas[schema]) {
         // console.log("dereferenceSchema: schema not found: " + schema)
+        var copiedFromOld=false
         if(!missing.includes(schema)) {
-            console.log("... ISSUE: referenced schema not found: " + schema)
+            console.log("... ISSUE: referenced schema not found in target: " + schema)
             missing.push(schema)
+            if(add_if_missing) {
+                // console.log("... SHOULD add schema from v4")
+                if(schemas?.OLD?.[schema]) {
+                    // console.log("... exists in v4")
+                    // console.log("... " + JSON.stringify(schemas?.OLD?.[schema],null,2))
+
+                    console.log("... adding schema " + schema + " from v4")
+
+                    copiedFromOld=true
+                    schemas[schema]=schemas?.OLD?.[schema]
+                    schemas[schema].copied=true
+
+                    console.log("... #1 COPIED schema=" + JSON.stringify(schemas[schema],null,2))
+
+                } 
+            }
         }
-        return {}
+        if(!copiedFromOld) return {}
     }
 
     // console.log("dereferenceSchema: schema.deref= " +  schemas[schema].deref )
@@ -405,17 +603,17 @@ function dereferenceSchema(schemas,schema,seen,missing) {
     // console.log("dereferenceSchema: definitions=" + JSON.stringify(definitions))
 
     if(isArray(definitions?.allOf)) {
-        definitions.allOf = definitions.allOf.map(allOf => dereference(schemas,allOf,seen,missing))
+        definitions.allOf = definitions.allOf.map(allOf => dereference(schemas,allOf,seen,missing,add_if_missing))
     }
     
     if(isArray(definitions?.oneOf)) {
-        definitions.oneOf = definitions.oneOf.map(oneOf => dereference(schemas,oneOf,seen,missing))
+        definitions.oneOf = definitions.oneOf.map(oneOf => dereference(schemas,oneOf,seen,missing,add_if_missing))
     }
 
     if(definitions?.properties) {
         for(const key of Object.keys(definitions?.properties)) {
             // console.log("dereferenceSchema: schema=" + schema + " property=" + key)
-            definitions.properties[key] = dereference(schemas,definitions.properties[key],seen,missing)
+            definitions.properties[key] = dereference(schemas,definitions.properties[key],seen,missing,add_if_missing)
         }
     }
     
@@ -424,7 +622,8 @@ function dereferenceSchema(schemas,schema,seen,missing) {
     return definitions
 }
 
-function dereference(schemas,element,seen,missing) {
+function dereference(schemas,element,seen,missing,add_if_missing) {
+    
     // if(element) console.log("dereference:: element=" + JSON.stringify(element,null,2))
 
     let res = element
@@ -435,12 +634,21 @@ function dereference(schemas,element,seen,missing) {
     if(res?.['$ref']) {
         // console.log("dereference:: element=" + JSON.stringify(element))
         const referenced = res['$ref'].split('#').pop().split('/').pop().split('.')[0]
-        // console.log("dereference:: referenced=" + JSON.stringify(referenced,null,2))
-        res = dereferenceSchema(schemas,referenced,seen,missing) 
+        // console.log("#1 dereference:: referenced=" + JSON.stringify(referenced,null,2))
+        res = dereferenceSchema(schemas,referenced,seen,missing,add_if_missing) 
+
     } else if(res?.items?.['$ref']) {
         const ref = res?.items?.['$ref']
         const referenced = ref.split('#').pop().split('/').pop().split('.')[0]
-        res.items = dereferenceSchema(schemas,referenced,seen,missing) 
+        // console.log("#2 dereference:: referenced=" + JSON.stringify(referenced,null,2))
+
+        res.items = dereferenceSchema(schemas,referenced,seen,missing,add_if_missing) 
+
+    } else if(res?.properties) {
+        for(const key of Object.keys(res?.properties)) {
+            // console.log("#3 dereferenceSchema: property=" + key)
+            res.properties[key] = dereference(schemas,res.properties[key],seen,missing,add_if_missing)
+        }
     }
 
     // if(element) console.log("dereference:: res=" + JSON.stringify(res,null,2))
@@ -549,8 +757,22 @@ function getObjectsWithProperty(obj,name) {
     return res
 }
 
+const possibleInvalidReference=[]
 function extractSchemaName(s) {
-    return s.split("#").pop().split('/').pop()
+    const last = s.split("#").pop().split('/').pop()
+
+    const file = s.replace(/#.*/,"").split('/').pop().replace(/\..*/,"")
+
+    const ignoreFiles = [ "GeoJSON", "PLACEHOLDER"]
+
+    if(last != file && file.length>0 && !ignoreFiles.includes(file) && !possibleInvalidReference.includes(last)) {
+        possibleInvalidReference.push(last)
+        console.log("... possible issue with reference: " + s)
+        // console.log("last=" + last + " file=" + file)
+    }
+
+    return last
+
 }
 
 function getAllReferences(schemas,reference,seen) {
@@ -587,6 +809,14 @@ function getRef(o) {
     return ref
 }
 
+var OLDDIR
+var NEWDIR
+
+function setEnvironment(olddir, newdir) {
+    OLDDIR=olddir
+    NEWDIR=newdir
+}
+
 module.exports = {
     validateAndUpdateProperties,
     getValuesByName,
@@ -599,6 +829,10 @@ module.exports = {
     flattenSchema, 
     flattenSchemas,
     extractPaths,
-    getAllReferences
+    getAllReferences,
+    checkReferencesForSchema,
+
+    setEnvironment
+
 }
 
