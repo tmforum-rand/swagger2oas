@@ -47,6 +47,12 @@ function readJSONOrYAMLFile(file, options) {
     return {}
 }
 
+function ignoreFile(file) {
+    // console.log("ignoreFile: " + file)
+    if(file === 'DCS') 
+        return true;
+    return false;
+}
 
 function readAllFiles(dirname, pattern, basedir) {
     basedir = basedir || dirname
@@ -67,7 +73,8 @@ function readAllFiles(dirname, pattern, basedir) {
 
             const stat = fs.statSync(filePath);
             if(stat.isDirectory()) {
-                res = { ...res, ...readAllFiles(filePath,pattern,basedir) }
+                if(!ignoreFile(file)) 
+                   res = { ...res, ...readAllFiles(filePath,pattern,basedir) }
             } else if(stat.isFile() && file.endsWith(pattern)) {
 
                 const json = readJSONOrYAML(dirname, file)
