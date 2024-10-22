@@ -109,7 +109,7 @@ try {
     } 
 
     const OLD_SCHEMADIR=options['old-schema-directory']
-
+ //
     setEnvironment(OLD_SCHEMADIR, SCHEMADIR)
 
     // console.log("SCHEMADIR=" + SCHEMADIR)
