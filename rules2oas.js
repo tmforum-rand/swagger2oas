@@ -997,7 +997,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
             }
 
         })
-        if(examples.length>1) element.examples = examples
+        if(examples.length>0) element.examples = examples
     }
 
 }
