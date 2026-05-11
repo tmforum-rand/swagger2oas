@@ -5,15 +5,18 @@ Used to convert V4 to V5
 
 `npm install`
 
-## Run rule conversation
+## Run rule conversion
+
+Use absolute paths.
 
 ```
 node rules2oas --input <v4_api_dir>/<v4.rules.yaml> \
       --schema-directory <v5_schema_dir> \
       --api-target-directory <v5_api_dir> \
-      --add-notification-examples (optional)\
-      --validate-properties  (optional)\
-      --overwrite-events (optiona - default false)\
+      --output <v5_api_dir>/<v5_api.rules.yaml> \
+      --add-notification-examples (optional) \
+      --validate-properties  (optional) \
+      --overwrite-events (optional - default false) \
       --overwrite-examples (optional - default false)
 ```
 

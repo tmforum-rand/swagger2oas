@@ -15,6 +15,9 @@ const { createEvent } = require('./generateEvent');
 
 const { validateAndUpdateProperties, getValuesByName, extractSchemaName } = require('./schemaUtils');
 const { adjustSchema, checkReferences, getObjectsWithProperty } = require('./schemaUtils')
+const { checkReferencesForSchema } = require('./schemaUtils')
+
+const { setEnvironment } = require('./schemaUtils')
 
 const RULESSCHEMA = "tmf.openapi.generator.rules.v1.schema.json"
 const OAS3_SCHEMA = "oas3.0.X.schema.json"
@@ -106,12 +109,50 @@ try {
     } 
 
     const OLD_SCHEMADIR=options['old-schema-directory']
+ //
+    setEnvironment(OLD_SCHEMADIR, SCHEMADIR)
+
+    // console.log("SCHEMADIR=" + SCHEMADIR)
+    // console.log("OLD_SCHEMADIR=" + OLD_SCHEMADIR)
 
     const newSchemas = readAllFiles(SCHEMADIR, 'schema.json')
 
     const oldSchemas = OLD_SCHEMADIR!=undefined ? readAllFiles(OLD_SCHEMADIR, 'schema.json') : {}
 
+    // check if all schemas used in v4 is present
+    const schemaUsedDir = API_SOURCE_DIR + "/schemas-used"
+    const usedSchemas = readAllFiles(schemaUsedDir, 'schema.json')
+    const usedKeys = Object.keys(usedSchemas).filter(p => !Object.keys(newSchemas).includes(p))
+
+    if(usedKeys.length) {
+        console.log("... adding schema from schemas-used")
+        for(const key of usedKeys) {
+            console.log("... ... " + key)
+
+            newSchemas[key]=oldSchemas[key]
+            newSchemas[key].copied=true
+
+            // console.log("... #1 schema to copy=" + JSON.stringify(newSchemas[key],null,2))
+
+            // console.log("... orig absFilename=" + newSchemas[key].absFilename)
+
+            newSchemas[key].absFilename=SCHEMADIR + "/Tmf/" +  newSchemas[key].filepath
+            newSchemas[key].absFilename=newSchemas[key].absFilename.replace("\/\/","\/")
+            newSchemas[key].absPath=newSchemas[key].absFilename.replace(newSchemas[key].filename,"").replace(/\/$/,"")
+
+            // console.log("... #2 schema to copy=" + JSON.stringify(newSchemas[key],null,2))
+
+            // console.log("... absFilename=" + newSchemas[key].absFilename)
+
+            // console.log("... #2 COPIED schema=" + JSON.stringify(newSchemas[key],null,2))
+
+        }
+    }
+
+
     let oas3 = convertRules(newSchemas, oldSchemas)
+
+    // console.log("oas3=" + JSON.stringify(oas3,null,2))
 
     if(!SCHEMADIR) {
         console.log("... schema directory not specified - unable to add schema references to rules")
@@ -122,9 +163,15 @@ try {
 
     }
 
+    // console.log("oas3=" + JSON.stringify(oas3,null,2))
+
     if(options['add-missing-schemas']) {
         const OLD_SCHEMADIR=options['old-schema-directory']
         oas3=addMissingSchemas(SCHEMADIR,OLD_SCHEMADIR,newSchemas,oas3)
+    } else {
+        if(options['schema-mapping']) {
+            oas3=applySchemaMapping(SCHEMADIR,OLD_SCHEMADIR,newSchemas,oas3) 
+        }
     }
          
     if(options['copy-examples']) {
@@ -157,21 +204,97 @@ try {
         oas3 = addNotificationExamples(apidir,oas3,API_SOURCE_DIR,API_TARGET_DIR,overwrite)
     }
 
+    // console.log("newSchemas::" + JSON.stringify(newSchemas,null,2))
+
     if(options['validate-properties']) {
-        oas3 = validateAndUpdateProperties(oas3,SCHEMADIR,newSchemas)
+        const ADD_MISSING_REFERENCED=true
+        newSchemas.OLD = oldSchemas
+        oas3 = validateAndUpdateProperties(oas3,SCHEMADIR,newSchemas,ADD_MISSING_REFERENCED)
     }
+
+    for(const key of Object.keys(newSchemas)) {
+         if(newSchemas[key]?.copied) {
+            console.log("... ... copy schema " + key)
+
+            const overwrite=true
+            const logging=false
+
+            const content = oldSchemas[key].schema
+
+            // console.log("... copy schema absPath=" + newSchemas[key].absPath)
+            // console.log("... copy schema old=" + OLD_SCHEMADIR)
+            // console.log("... copy schema nw=" + SCHEMADIR)
+
+            let absPath = newSchemas[key].absPath
+            // absPath = absPath.replace(OLD_SCHEMADIR,"")
+            // absPath = SCHEMADIR + "/Tmf" + absPath
+
+            writeJSON(absPath, newSchemas[key].filename, content, overwrite, logging) 
+
+         } else if(newSchemas[key]?.updated) {
+            // console.log("... ... updated schema " + key)
+
+            const overwrite=true
+            const logging=false
+
+            const content = newSchemas[key].schema
+
+            let absPath = newSchemas[key].absPath
+     
+            writeJSON(absPath, newSchemas[key].filename, content, overwrite, logging) 
+
+         }
+    }
+
+    // console.log("NEW_SCHEMAS=" + JSON.stringify(newSchemas,null,2))
 
     const validationIssues = validate(oas3)
 
     if(validationIssues.length>0) {
         console.log("... not converted - validation of generated rules failed")
         console.log('... ... ' + JSON.stringify(validationIssues,null,2).split('\n').join('\n... ... ') )
+
+        console.log("... draft rules file: " + JSON.stringify(oas3,null,2))
+
         process.exit(1)
     }
 
-    checkExistingReferences(oas3,SCHEMADIR)
+    // checkExistingReferences(oas3,SCHEMADIR)
+
+    // checkReferences(newSchemas,{},SCHEMADIR);
+
+    // for(const key of Object.keys(newSchemas)) {
+    //     checkReferencesForSchema(key,newSchemas,{},SCHEMADIR);
+    // }
+
+    if(false)
+    for(const key of Object.keys(newSchemas)) {
+        if(newSchemas[key]?.deref || newSchemas[key]?.updated) {
+  
+           // console.log("#########  ... deref schema: " + key)
+           // checkReferencesForSchema(key,newSchemas,{},SCHEMADIR);
+
+           if(newSchemas[key]?.updated) {
+               console.log("... updated references for schema: " + key)
+               const overwrite=true
+               const logging=false
+            
+               // console.log("... schema details: " + JSON.stringify(newSchemas[key],null,2))
+       
+               const schema = newSchemas[key]
+
+                // console.log("... schema.absPath=" + schema.absPath)
+                // console.log("... schema.filename=" + schema.filename)
+
+                writeJSON(SCHEMADIR, schema.filepath, schema.schema, overwrite, logging) 
+
+           }
+        }
+
+   }
 
     writeOpenAPI(oas3,OUTPUT)
+
     console.log("... rule: output to " + OUTPUT.replace(API_TARGET_DIR + '/',''))
 
 
@@ -185,12 +308,22 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
   
     if(allSchemas.length==0) return oas3
 
+    // console.log("### allSchemas=" + JSON.stringify(allSchemas))    
+
     const oldSchemas = readAllFiles(old_schemadir, 'schema.json')
 
-    console.log("### oldSchemas " + Object.keys(oldSchemas))    
+    // console.log("### oldSchemas " + Object.keys(oldSchemas))    
 
-    const schemaIds = allSchemas.map(item => extractSchemaName(item))
+    let schemaIds = allSchemas.map(item => extractSchemaName(item))
+    schemaIds = [...new Set(schemaIds)]
+
+    // console.log("### addMissingSchemas: schemaIds=" + JSON.stringify(schemaIds))    
+
     let allMissing = getAllMissingReferenced(schemaIds, newSchemas, oldSchemas)
+
+    // console.log("### addMissingSchemas: schemaIds=" + JSON.stringify(schemaIds))    
+
+    // console.log("### addMissingSchemas: allMissing=" + JSON.stringify(allMissing))    
 
     const copiedSchemas=[]
     let updated=false
@@ -203,12 +336,13 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
 
                 old.schema = adjustSchema(old.schema)    
 
-                writeJSON(schemadir + '/' + newPath, old.filename, old.schema)
+                const p = path.join(schemadir, newPath)
+                writeJSON(p, old.filename, old.schema)
                 // console.log("... copied " + old.filename)    
                 copiedSchemas.push(old.filename)
 
                 newSchemas[missing].filename = old.filename
-                newSchemas[missing].filepath = newPath + '/' + newSchemas[missing].filename
+                newSchemas[missing].filepath = path.join(newPath, newSchemas[missing].filename)
 
                 updated=true
             }
@@ -218,14 +352,14 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
     }
 
     if(copiedSchemas.length>0) {
-        console.log('... copy schemas from V4')
+        console.log('... copy schemas from V4: ') // + JSON.stringify(copiedSchemas))
         for(const file of copiedSchemas) {
             console.log("... ... " + file)    
         }
     }
 
     const mappingFile = options['schema-mapping']
-    const schemaMapping=readJSONOrYAMLFile(mappingFile) // , {notFoundOK: true})
+    const schemaMapping=readJSONOrYAMLFile(mappingFile, {notFoundOK: true})
 
     // console.log("schemaMapping: " + JSON.stringify(schemaMapping))
 
@@ -234,7 +368,7 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
         console.log("... " + modified.length + " schemas with corrected references")
         for(const schema of modified) {
             if(schema.updated) {
-                const dir=schemadir + '/' + path.dirname(schema.filepath)
+                const dir=path.join(schemadir, path.dirname(schema.filepath))
                 // console.log("modified: " + schema.filename + " dir=" + dir)
                 const overwrite=true
                 const logging=false
@@ -255,6 +389,37 @@ function addMissingSchemas(schemadir,old_schemadir,newSchemas,oas3) {
     return oas3
 
 }
+
+function applySchemaMapping(schemadir,old_schemadir,newSchemas,oas3) {
+
+    const mappingFile = options['schema-mapping']
+    const schemaMapping=readJSONOrYAMLFile(mappingFile) // , {notFoundOK: true})
+
+    console.log("schemaMapping: " + JSON.stringify(schemaMapping))
+
+    const modified=checkReferences(newSchemas,schemaMapping,schemadir)
+    if(modified.length>0) {
+        console.log("... " + modified.length + " schemas with corrected references")
+        for(const schema of modified) {
+            if(schema.updated) {
+                const dir=path.join(schemadir, path.dirname(schema.filepath))
+                // console.log("modified: " + schema.filename + " dir=" + dir)
+                const overwrite=true
+                const logging=false
+                writeJSON(dir, schema.filename, schema.schema, overwrite, logging)
+
+                if(modified.length<10) {
+                    console.log("... ... " + schema.filename)
+                }
+            } 
+        }
+    }
+
+    return oas3
+
+}
+
+
 function checkExistingReferences(obj,schemadir,seen) {
     seen = seen || []
 
@@ -280,7 +445,8 @@ function checkExistingReferences(obj,schemadir,seen) {
 
         if(first==last) absFilename=absFilename.replace(first,'')
 
-        absFilename=absFilename.replace('\/\/','\/').replace('schemas/schemas','schemas')
+        // absFilename=absFilename.replace('\/\/','\/').replace('schemas/schemas','schemas')
+        absFilename = path.normalize(absFilename)
 
         const referenced=readJSONOrYAMLFile(absFilename,{notFoundOK: true})
         if(isEmpty(referenced)) {
@@ -294,12 +460,17 @@ function checkExistingReferences(obj,schemadir,seen) {
 
 }
 
-function getAllMissingReferenced(referenced, newSchemas, oldSchemas,seen,missing) {
+function getAllMissingReferenced(referenced, newSchemas, oldSchemas, seen, missing) {
     seen = seen || []
     missing = missing || []
     let res = []
 
+    // console.log("... getAllMissingReferenced:: referenced" + JSON.stringify(referenced))
+
     while(!isEmpty(referenced)) {
+
+        // console.log("... getAllMissingReferenced:: referenced" + JSON.stringify(referenced))
+
         const reference = referenced.pop()
         if(!seen.includes(reference)) {
             seen.push(reference)
@@ -320,9 +491,9 @@ function getAllMissingReferenced(referenced, newSchemas, oldSchemas,seen,missing
                     }
                 }
             } else {
-                seen.push(reference)
+                // seen.push(reference)
                 const includedReferences = getValuesByName(newSchemas[reference],'$ref').map(item => extractSchemaName(item))
-                // console.log("includedReferences: " + includedReferences)
+                // console.log("includedReferences: reference=" + reference + " refs=" + includedReferences)
                 referenced.push(...includedReferences)
                 referenced = referenced.filter(item => !seen.includes(item))
             }
@@ -342,6 +513,8 @@ function convertRules(newSchemas, oldSchemas) {
     let operationSamples = readOperationsSamples(apiDir, OPERATION_SAMPLES);
     let resourceSamples  = readResourceSamples(apiDir, RESOURCE_SAMPLES);
 
+    // console.log("FILE=" + FILE)
+    
     let fileContents = fs.readFileSync(FILE, 'utf8');
     let data = yaml.safeLoad(fileContents);
 
@@ -383,8 +556,14 @@ function convertRules(newSchemas, oldSchemas) {
     oas3.api.tmfId = tmfId
 
     oas3.api.hostUrl = currentApi.hostUrl
-    oas3.api.basePath = currentApi.basePath
     oas3.api.version = currentApi.version
+
+    oas3.api.version = "5.0.0" // for now assume 5.0.0
+    const basePath = currentApi.basePath.replace("v4","v5")
+
+    // console.log("basepath=" + basePath)
+
+    oas3.api.hostUrl = `${oas3.api.hostUrl}${basePath}`
 
     delete currentApi['hostUrl']
     delete currentApi['basePath']
@@ -682,7 +861,7 @@ function readResourceSamples(apiDir, dir) {
 
 function readOperationsSamples(apiDir, dir) {
     let result = {}
-    let operationsSampleDir = apiDir + dir
+    let operationsSampleDir = path.join(apiDir, dir)
 
     if(!fs.existsSync(operationsSampleDir)) return result
 
@@ -778,9 +957,14 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
                 } else if( sample['content-type']) {
                     example['content-type'] = sample['content-type']
                 }
+
+                // console.log("example.content-type=" + example['content-type'])
+
                 if(!example['content-type'].startsWith('application/')) {
                     example['content-type'] = 'application/' + example['content-type'] 
                 }
+
+                example['content-type'] = example['content-type'].replace("//","/")
 
                 if(sample.request)  {
                     example.request = { 
@@ -805,7 +989,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
                 for(const fileRef of fileRefs) {
                     // console.log("fileRef: " + JSON.stringify(fileRef))
                     if(!fileRef.file?.startsWith('./documentation') && !fileRef.file?.startsWith('documentation')) {
-                        fileRef.file = 'documentation/operation-samples/' + fileRef.file
+                        fileRef.file = path.join('documentation', 'operation-samples', fileRef.file)
                         fileRef.file = fileRef.file.replace('/./','/')
                     }
                 }
@@ -813,7 +997,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
             }
 
         })
-        if(examples.length>1) element.examples = examples
+        if(examples.length>0) element.examples = examples
     }
 
 }
@@ -821,7 +1005,7 @@ function addOperationExample(apiDir, operationsSamples, resource, operation, ele
 function isFileJSONArray(dir, file) {
     let res = false        
     try { 
-        let content = fs.readFileSync(dir + '/' + file, 'utf-8')
+        let content = fs.readFileSync(path.join(dir,file), 'utf-8')
         content = content.trim()
         if(content.startsWith('[')) res=true
     } catch(e) {
@@ -839,15 +1023,15 @@ function getSampleFilename(samples, file) {
 
     let matching = samples.files.filter( f => f.startsWith(file))        
     if(matching.length) {
-        result = samples.directory + '/' + matching[0]
+        result = path.join(samples.directory, matching[0])
     } else {
         result = file + '_sample.json'
     }
 
-    if(result.startsWith('/')) result = '.' + result
-    if(!result.startsWith('./')) result = './' + result
+    if(result.startsWith('/')) result = path.join('.', result)
+    if(!result.startsWith('./')) result = path.join('.', result)
 
-    result = result.replace('//','/')
+    result = path.normalize(result) // result.replace('//','/')
 
     return result
 }
@@ -866,7 +1050,7 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
         if(schema?.added) {
             // console.log("########## new schema " + name)
             // console.log("########## new schema " + JSON.stringify(schema,2))
-            writeJSON(SCHEMADIR + "/Tmf",  schema.filepath, schema.schema)
+            writeJSON(path.join(SCHEMADIR, "Tmf"), schema.filepath, schema.schema)
         }
     })
 
@@ -876,7 +1060,10 @@ function addSchema(oas3,schemadir,overwrite_events,schemas) {
             console.log("... rule: adding schema for " + resource.name)
             let schema =  schemas[resource.name]?.filepath || "PLACEHOLDER"
 
-            if(!schema.toUpperCase().startsWith("TMF")) schema = "Tmf" + schema
+            // console.log("########## schema " + schema)
+            // console.log("########## schemadir " + schemadir)
+
+            if(!schema.toUpperCase().includes("TMF")) schema = "Tmf" + schema
 
             schema = "schemas/" + schema + "#" + resource.name
             schema = schema.replace("\/\/","\/")
@@ -947,7 +1134,7 @@ function readAllFiles_old(dir,basedir) {
     return res
 }
 
-function generateEventSchemaReference(resource, resourceSchema, notification, overwrite,schemas) {
+function generateEventSchemaReference(resource, resourceSchema, notification, overwrite, schemas) {
     let res = resourceSchema
 
     // console.log("generateEventSchemaReference::res=" + res + " resource=" + resource)
@@ -1015,14 +1202,14 @@ function saveEvents(domain,events,overwrite) {
     const eventId = events.event['$id']
     const payloadId = events.payload['$id']
 
-    let eventFilename = SCHEMADIR + '/Tmf/' + domainPart + '/Event/' + eventId
-    let payloadFilename = SCHEMADIR + '/Tmf/' + domainPart + '/' + payloadId
+    let eventFilename = path.join(SCHEMADIR, 'Tmf', domainPart, 'Event', eventId)
+    let payloadFilename = path.join(SCHEMADIR, 'Tmf', domainPart, 'Event', payloadId)
 
     // console.log("saveEvents:: eventFilename=" + eventFilename)
     // console.log("saveEvents:: payloadFilename=" + payloadFilename)
 
-    eventFilename = eventFilename.replace('//','/')
-    payloadFilename = payloadFilename.replace('//','/')
+    eventFilename = path.normalize(eventFilename) // eventFilename.replace('//','/')
+    payloadFilename = path.normalize(payloadFilename) // payloadFilename.replace('//','/')
 
     createDirectory(eventFilename)
     createDirectory(payloadFilename)
@@ -1066,6 +1253,12 @@ function addNotificationExamples(apidir, oas, inputdir, apiTargetDirectory, over
 
     oas?.api?.resources?.forEach(resource => {
         const resourceExampleSource = resource.examples?.[0]?.file    
+
+        if(!resourceExampleSource) {
+            console.log("... ISSUE: missing resource example source: resource=" + resource.name)
+            return;
+        }
+
         let resourceExample = readJSONOrYAML(apidir, resourceExampleSource, {notFoundOK: true})
 
         // console.log("resourceExample: inputdir=" + inputdir)
@@ -1133,7 +1326,10 @@ function writeJSON(apidir, filename, content, overwrite, logging) {
         const text = JSON.stringify(content,null,4)
         let absFilename = apidir + '/' + filename
         
-        // console.log("... absFilename=" + absFilename)
+        // if(true || !filename.endsWith(".json")) {
+        //     console.log("... ... saving " + filename + " to " + absFilename )
+        //     console.log(JSON.stringify(content,null,2))
+        // }
 
         createDirectory(absFilename)
         absFilename=getFileNameIfMisspelling(absFilename)
@@ -1159,9 +1355,11 @@ function getFileNameIfMisspelling(filename) {
 
 function copyFile(target_dir, filename, source_dir, overwrite, logging) {
     try {
-        const absTarget = target_dir + '/' + filename
-        const absSource = source_dir + '/' + filename
+        const absTarget = path.join(target_dir, filename)
+        const absSource = path.join(source_dir, filename)
+
         createDirectory(absTarget)
+        
         if(!fs.existsSync(absTarget)) {
             const content=readJSONOrYAMLFile(absSource,{ignoreCapitalization: true})
             const text = JSON.stringify(content,null,4)
@@ -1269,6 +1467,7 @@ function createHRef(oas, resource, id) {
 function checkIfResourceExists(new_schemas, old_schemas, resource) {
     if(!new_schemas[resource]) {
         // console.log(`... ### ISSUE:resource ${resource} missing in v5`)
+        console.log("... adding schema from v4: " + resource)
         new_schemas[resource] = old_schemas[resource]
         new_schemas[resource].added = true
         // console.log(`...     ${JSON.stringify(new_schemas[resource],2)}`)

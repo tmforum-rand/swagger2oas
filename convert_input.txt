@@ -1,0 +1,21 @@
+TMF699_Sales v4.1
+TMF687_Stock v4.1
+TMF680_Recommendation v4.0
+TMF676_Payment v4.1
+TMF671_Promotion v4.0
+TMF658_Loyalty v4.1
+TMF655_Change v4.1
+TMF654_PrepayBalance v4.1
+TMF649_Performance_Thresholding v4.1
+TMF646_Appointment v4.0
+TMF651_Agreement v4.0
+#TMF697_Work_Order v4.2
+TMF700_Shipping_Order v4.2
+TMF711_Shipment_Management v4.2
+TMF712_Shipment_Qualification v4.0
+TMF713_Work_Management v4.0
+TMF714_Work_Qualification v4.0
+
+TMF686_Topology v4.0
+TMF751_AnomalyManagement v4.0
+
